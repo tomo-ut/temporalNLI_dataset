@@ -1,0 +1,47 @@
+premise	hypothesis
+agent_1 は place_1 に np_1 を vp_1_conj ている。	agent_1 は 現在 place_1 に np_1 を vp_1_conj ている。
+tp_1 以来、 agent_1 は place_1 に ある。現在、 tp_2 である。	agent_1 は tp_3 には place_1 に あった。
+agent_1 は tp_1 以来、 np_1 を vp_1_conj て きた。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_1_conj た。
+agent_1 は tp_1 以来、np_1 を vp_1_conj て いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_1_conj た。
+tp_1 以来、 agent_1 は np_1 を vp_1_conj て いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_1_conj た。
+agent_1 は tp_1 以来 np_1 を vp_1_conj て いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_1_conj た。
+tp_1 に agent_1 は np_1を vp_1_conj た。	agent_2 は tp_2 に vp_2_conj た。
+agent_1 は tp_1 に vp_1_conj た。その agent_1 は tp_2 に vp_2 た。	agent_1 は tp_2 には vp_3 て いた。
+昨日、 agent_1 は np_1 に vp_1_conj た。今日は tp_1 だ。	agent_1 は tp_2 に np_1 に vp_1_conj た。
+agent_1 は agent_2 が vp_1 前に vp_2_conj た。 agent_2 は agent_3 が vp_3 前に vp_2_conj た。	agent_1 は agent_3 が vp_3 前に vp_2_conj た。
+agent_1 は agent_2 が vp_1_conj た後に vp_2_conj た。 agent_2 は agent_3 が vp_3_conj た後に vp_1_conj た。	agent_1 は agent_3 が vp_3_conj た後に vp_2_conj た。
+agent_1 が vp_1_conj た。 agent_2 が vp_1_conj た。 agent_1 は agent_2 が vp_1 前に vp_1_conj た。	agent_2 は agent_1 が vp_1_conj た後で vp_1_conj た。
+agent_1 が vp_1_conj た。 agent_2 が vp_1_conj た。 agent_1 は agent_2 が vp_1_conj た後に vp_1_conj た。	agent_2 は agent_1 が vp_1 前に vp_1_conj た。
+agent_1 が vp_1_conj た。 agent_2 が vp_1_conj た。 agent_2 は agent_1 が vp_1 前に vp_1_conj た。	agent_1 は agent_2 が vp_1_conj た後で vp_1_conj た。
+agent_1 が np_1 を vp_1_conj た。 agent_3 が np_1 を vp_1_conj た。 agent_1 が np_2 より先に np_1 を vp_1_conj た。	agent_3 は avent_1 より後に np_1 を vp_1_conj た。
+agent_1 が np_1 を vp_1_conj た。 agent_3 が np_1 を vp_1_conj た。 agent_1 が np_2 より後に np_1 を vp_1_conj た。	agent_3 は avent_1 より先に np_1 を vp_1_conj た。
+agent_1 が vp_1_conj た。 agent_2 が vp_1_conj た。 agent_1 は agent_2 が vp_1 前に vp_1_conj た。	agent_2 は agent_1 が vp_1_conj た後に vp_1_conj た。
+agent_1 が place_1 まで vp_move_1_conj た。 agent_3 が place_2 まで vp_move_2_conj た。 agent_1 は agent_3 が place_2 まで vp_move_2 前に、 place_1 まで vp_move_1_conj た。	agent_3 は agent_1 が place_1 まで vp_move_1_conj た後に、 place_2 まで vp_move_2_conj た。
+agent_1 は vp_1 前に np_1 から vp_move_1 た。	agent_1 は vp_1_conj た。
+agent_1 は tp_1 に place_1 に vp_1_conj て いた。	agent_1 は tp_2 に place_1 に vp_1_conj て いた。
+agent_1 は tp_1 に np_only_1 の np_1 を vp_1_conj た。	agent_1 は tp_2 に np_only_1 の np_1 を vp_1_conj た。
+agent_1 は tp_1 に np_1 を vp_1_conj た。	agent_1 は tp_2 に np_1 を vp_1_conj た。
+agent_1 は tp_1 に np_1 を vp_1_conj た。	agent_1 は tp_2 にその np_1 を vp_1_conj た。
+agent_1 が tp_1 に np_1 を vp_1_conj た。	agent_1 はそれを tp_2 に vp_1_conj た。
+agent_1 が tp_1 に np_1 を vp_1_conj た。	agent_1 が tp_2 に np_1 を vp_1_conj た。
+agent_1 が interval_1 以内に np_1 を vp_1_conj た。 agent_1 は tp_2 にその np_1 を vp_1 始めた。	agent_1 は tp_3 までにその np_1 を vp_1 終えた。
+agent_1 が interval_1 以内に np_1 を vp_1_conj た。	agent_1 はその np_1 を vp_1 のに interval_1 を vp_2 た。
+agent_1 が interval_1 以内に np_1 を vp_1_conj た。	agent_1 はその np_1 を vp_1 のに interval_1 以上 vp_2 た。
+agent_1 が interval_1 以内に np_1 を vp_1_conj た。	agent_1 は interval_2 以内に np_1 を vp_1_conj た。
+agent_1 が interval_1 以内に np_1 を vp_1_conj た。	agent_1 は np_1 を vp_1_conj た。
+agent_1 は interval_1 以内に np_1 を vp_1_conj た。	agent_1 は np_1 を vp_1_conj た。
+agent_1 は interval_1 以内に np_1 の np_2 を vp_1_conj た。	agent_1 は np_2 を vp_1 のに interval_1 を vp_2 た。
+agent_1 は interval_1 place_1 に vp_1_conj た。	agent_1 は interval_2 place_1 に vp_1_conj た。
+agent_1 は interval_1 place_1 に vp_1_conj た。	agent_1 はちょうど interval_2 place_1 に vp_1_conj た。
+agent_1 は place_1 に interval_1 vp_1_conj た。	agent_1 は place_1 に vp_1_conj た。
+agent_1 は np_1 の np_2 を interval_1 vp_1_conj た。	agent_1 は np_1 の np_2 を interval_2 vp_1_conj た。
+agent_1 は np_1 の np_2 を interval_1 vp_1_conj た。	agent_1 は np_1 の np_2 を vp_1_conj た。
+agent_1 は interval_1 np_1 を vp_1_conj た。	agent_1 は interval_2 np_1 を vp_1_conj た。
+agent_1 は interval_1 np_1 を vp_1_conj た。	agent_1 は np_1 を vp_1_conj た。
+tp_1 、 agent_1 は毎 time_unit_1 np_1 を vp_1_conj た。	agent_1 は tp_2 に np_1 を vp_1_conj た。
+agent_1 は毎 time_unit_1 np_1 に np_2 を vp_1_conj た。	agent_1 が 毎 time_unit_1 np_2 を vp_1_conj た agent_2 が vp_2 。
+agent_1 は tp_1 に place_1 を vp_1_conj た。それから、 agent_1 は np_2 を vp_2_conj て place に vp_3_conj た。	agent_1 は np_2 を vp_2_conj て place_1 に vp_1 前に、 np_1 を vp_1_conj た。
+agent_1 はいつも np_1 を vp_1_conj て vp_2 。 tp_1 に agent_1 は np_1 を vp_2_conj た。	agent_1 は tp_1 に np_1 を vp_1_conj て vp_2_conj た。
+agent_1 は決して np_1 を vp_1_conj て vp_2 ことはない。 tp_1 に agent_1 は np_1 を vp_2_conj た。	agent_1 は tp_1 に np_1 を vp_1_conj て vp_2_conj た。
+agent_1 は tp_1 に place_1 に vp_1_conj た。今日は tp_2 だ。 agent_1 はまだ place_1 に vp_2_conj て いる。	agent_1 は tp_3 に place_1 に vp_3 た。
+agent_1 が place_1 に vp_1_conj た時、 agent_1 は interval_1 np_ev_1 を vp_2_conj て いた。	agent_1 は place_1 に vp_1_conj た relative_tp_1 に np_ev_1 を vp_2_conj て いた。
