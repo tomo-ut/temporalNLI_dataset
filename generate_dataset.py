@@ -2,6 +2,9 @@ import random
 from copy import deepcopy
 from transformers import pipeline, AutoTokenizer, AutoModelForMaskedLM
 from tqdm import tqdm
+from janome.tokenizer import Tokenizer
+from kotodama import kotodama
+from pyknp import Juman
 
 
 def assign_word(element):
@@ -16,6 +19,8 @@ def assign_word(element):
         return(str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間']))
     elif 'place' in element:
         return(random.choice(place_list))
+    elif 'time_unit' in element:
+        return(random.choice(['月', '年', '日']))
     else:
         return(element)
 
@@ -29,10 +34,35 @@ def assign_verb(elements, ind):
             else:
                 c_elements[i] = 'する'
     mask_text = ''.join([tokenizer.mask_token if 'vp' in e else e for e in c_elements])
-    return fill_mask(mask_text)[0]['token_str'].replace(' ', '')
+    result = fill_mask(mask_text)[0]
+    return result['token_str'].replace(' ', ''), result['sequence'].replace(' ', '')
+
+
+def transform_end(verb, text):
+    for token in janome_tokenizer.tokenize(text):
+        if token.surface == verb:
+            if token.part_of_speech.split(',')[0] != '動詞':
+                return token.base_form + 'する'
+            return token.base_form
+    return 'error'
+
+
+def inflect_memo(memo, element, verb):
+    element = element.replace('_conj', '').replace('_imp', '')
+    memo[element] = verb
+    try:
+        memo[element + '_conj'] = kotodama.transformVerb(verb, {'過去'})[:-1]
+        memo[element + '_imp'] = kotodama.transformVerb(verb, {'否定'})[:-2]
+    except(ValueError):
+        pass
+    return memo
 
 
 random.seed(0)
+janome_tokenizer = Tokenizer()
+kotodama.setSegmentationEngine(kotodama.SegmentationEngine.JANOME, janome_tokenizer)
+kotodama.disableError(Juman())
+
 
 with open('./template.tsv', 'r') as infile:
     templates = infile.read().splitlines()[1:]
@@ -68,7 +98,12 @@ for template in tqdm(templates):
                     memo[element] = elements[i]
             for i, element in enumerate(elements):
                 if element not in (list(memo.keys()) + list(memo.values())):
-                    elements[i] = assign_verb(elements, i)
+                    elements[i], text = assign_verb(elements, i)
+                    end_form = transform_end(elements[i], text)
+                    memo = inflect_memo(memo, element, end_form)
+                elif element in memo:
+                    elements[i] = memo[element]
+
         texts.append([''.join(prem_elements), ''.join(hyp_elements)])
 
 with open('dataset.tsv', 'w') as outfile:
