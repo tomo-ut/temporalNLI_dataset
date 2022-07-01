@@ -283,7 +283,7 @@ if __name__ == '__main__':
     kotodama.setSegmentationEngine(kotodama.SegmentationEngine.JANOME, janome_tokenizer)
     kotodama.disableError(Juman())
 
-    with open('./dataset/template/template_test.tsv', 'r') as infile:
+    with open('./dataset/template/template.tsv', 'r') as infile:
         templates = infile.read().splitlines()[1:]
         templates = [template.split('\t') for template in templates]
 
@@ -309,13 +309,18 @@ if __name__ == '__main__':
 
     bert = "cl-tohoku/bert-base-japanese-whole-word-masking"
     roberta = "nlp-waseda/roberta-large-japanese"
-    model_name = roberta
+    model_name_str = "roberta"
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForMaskedLM.from_pretrained(model_name)
-    fill_mask = pipeline("fill-mask", model=model, tokenizer=tokenizer)
+    for model_name_str in ['bert', 'roberta']:
+        if model_name_str == "roberta":
+            model_name = roberta
+        else:
+            model_name = bert
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForMaskedLM.from_pretrained(model_name)
+        fill_mask = pipeline("fill-mask", model=model, tokenizer=tokenizer)
 
-    out_file = 'dataset/' + 'roberta/dataset_with_perplexity.tsv'
-    # generate_dataset_with_verb_predict(out_file)
-    # generate_dataset_with_np_predict(out_file)
-    generate_dataset_with_perplexity(out_file)
+        out_file = 'dataset/' + model_name_str
+        generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict')
+        generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
+        # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
