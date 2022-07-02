@@ -10,6 +10,7 @@ import numpy as np
 import re
 
 
+# vp 以外に語を割り当てる
 def assign_word_wo_vp(element):
     if 'agent' in element:
         return(random.choice(proper_agent_list))
@@ -27,10 +28,13 @@ def assign_word_wo_vp(element):
     else:
         return(element)
 
+# np 以外に語を割り当てる
+
 
 def assign_word_wo_np(element):
     if 'agent' in element:
         return(random.choice(proper_agent_list))
+    # 動詞を活用させる
     elif 'vp_zi' in element:
         if 'conj' in element:
             return(random.choice(vp_zi_list)[1])
@@ -68,6 +72,8 @@ def assign_word_wo_np(element):
         return(random.choice(['月', '年', '日']))
     else:
         return(element)
+
+# 全てに語を割り当てる
 
 
 def assign_word(element):
@@ -114,7 +120,8 @@ def assign_word(element):
         return(element)
 
 
-def assign_verb(elements, ind):
+# MLMによる動詞の割り当て
+def assign_verb(elements, ind, memo):
     c_elements = deepcopy(elements)
     for i in range(len(elements)):
         if i != ind and 'vp' in elements[i]:
@@ -123,14 +130,25 @@ def assign_verb(elements, ind):
             else:
                 c_elements[i] = 'する'
     if model_name == bert:
+        for i, e in enumerate(c_elements):
+            if 'past' in e or 'prog' in e:
+                if 'past' in e:
+                    p = random.choices(['た', 'だ'], weights=[7, 3])
+                else:
+                    p = random.choices(['て', 'で'], weights=[7, 3])
+                c_elements[i + 1:i + 1] = p
+                elements[i + 1:i + 1] = p
+                memo[p[0]] = p[0]
         mask_text = ''.join([tokenizer.mask_token if 'vp' in e else e for e in c_elements])
     elif model_name == roberta:
         sentence = ''.join([tokenizer.mask_token if 'vp' in e else e for e in c_elements])
-        mask_text = ' '.join([token.surface for token in janome_tokenizer.tokenize(sentence)]).replace('[ MASK ]', '[MASK]')
+        mask_text = ' '.join([token.surface for token in janome_tokenizer.tokenize(sentence)]
+                             ).replace('[ MASK ]', '[MASK]')
     result = fill_mask(mask_text)[0]
     return result['token_str'].replace(' ', ''), result['sequence'].replace(' ', '')
 
 
+# MLMによる名詞の割り当て
 def assign_np(elements, ind):
     c_elements = deepcopy(elements)
     np_count = sum([1 if 'np' in e else 0 for e in elements])
@@ -142,12 +160,14 @@ def assign_np(elements, ind):
         mask_text = ''.join([tokenizer.mask_token if 'np' in e else e for e in c_elements])
     elif model_name == roberta:
         sentence = ''.join([tokenizer.mask_token if 'np' in e else e for e in c_elements])
-        mask_text = ' '.join([token.surface for token in janome_tokenizer.tokenize(sentence)]).replace('[ MASK ]', '[MASK]')
+        mask_text = ' '.join([token.surface for token in janome_tokenizer.tokenize(sentence)]
+                             ).replace('[ MASK ]', '[MASK]')
     result = fill_mask(mask_text)[0]
 
     return result['token_str'].replace(' ', ''), result['sequence'].replace(' ', '')
 
 
+# 終止形に戻す
 def transform_end(verb, text):
     for token in janome_tokenizer.tokenize(text):
         if token.surface == verb:
@@ -157,17 +177,22 @@ def transform_end(verb, text):
     return 'error'
 
 
+# 活用形をメモ
 def inflect_memo(memo, element, verb):
-    element = element.replace('_conj', '').replace('_imp', '')
+    element = re.sub('_conj|_imp|_prog|_past|_coni', '', element)
     memo[element] = verb
     try:
         memo[element + '_conj'] = kotodama.transformVerb(verb, {'過去'})[:-1]
         memo[element + '_imp'] = kotodama.transformVerb(verb, {'否定'})[:-2]
+        memo[element + '_prog'] = kotodama.transformVerb(verb, {'て'})
+        memo[element + '_past'] = kotodama.transformVerb(verb, {'過去'})
+        memo[element + '_coni'] = kotodama.transformVerb(verb, {'です・ます'})[:-2]
     except(ValueError):
         pass
     return memo
 
 
+# perplexity の計算
 def compute_perplexity(sentence):
     sentence = ' '.join([token.surface for token in janome_tokenizer.tokenize(sentence)])
     tensor_input = tokenizer.encode(sentence, return_tensors='pt')
@@ -180,6 +205,7 @@ def compute_perplexity(sentence):
     return np.exp(loss.item())
 
 
+# vpをMLMで予測してデータを生成
 def generate_dataset_with_verb_predict(out_file):
     texts = []
     for template in tqdm(templates):
@@ -198,7 +224,7 @@ def generate_dataset_with_verb_predict(out_file):
                         memo[element] = elements[i]
                 for i, element in enumerate(elements):
                     if element not in (list(memo.keys()) + list(memo.values())):
-                        elements[i], text = assign_verb(elements, i)
+                        elements[i], text = assign_verb(elements, i, memo)
                         end_form = transform_end(elements[i], text)
                         memo = inflect_memo(memo, element, end_form)
                     elif element in memo:
@@ -212,6 +238,7 @@ def generate_dataset_with_verb_predict(out_file):
             outfile.write(f'{text[0]}\t{text[1]}\n')
 
 
+# npをMLMで予測してデータを生成
 def generate_dataset_with_np_predict(out_file):
     texts = []
     for template in tqdm(templates):
@@ -243,6 +270,7 @@ def generate_dataset_with_np_predict(out_file):
             outfile.write(f'{text[0]}\t{text[1]}\n')
 
 
+# MLMによる予測はなしで、perplexityベースで生成
 def generate_dataset_with_perplexity(out_file):
     texts = []
     for template in tqdm(templates):
@@ -274,7 +302,6 @@ def generate_dataset_with_perplexity(out_file):
         outfile.write('premise\thypothesis\n')
         for text in texts:
             outfile.write(f'{text[0]}\t{text[1]}\n')
-
 
 
 if __name__ == '__main__':
