@@ -81,6 +81,19 @@ def assign_word(element):
         return(random.choice(proper_agent_list))
     if 'np' in element:
         return(random.choice(np_list))
+    elif 'vp' in element:
+        if 'conj' in element:
+            return(random.choice(vp_list)[1])
+        elif 'imp' in element:
+            return(random.choice(vp_list)[2])
+        elif 'past' in element:
+            return kotodama.transformVerb(random.choice(vp_list)[0], {"過去"})
+        elif 'prog' in element:
+            return kotodama.transformVerb(random.choice(vp_list)[0], {"て"})
+        elif 'coni' in element:
+            return kotodama.transformVerb(random.choice(vp_list)[0], {"です・ます"})[:-2]
+        else:
+            return(random.choice(vp_list)[0])
     elif 'vp_zi' in element:
         if 'conj' in element:
             return(random.choice(vp_zi_list)[1])
@@ -274,17 +287,21 @@ def generate_dataset_with_np_predict(out_file):
 def generate_dataset_with_perplexity(out_file):
     texts = []
     for template in tqdm(templates):
+        # 1つのテンプレートあたりいくつのインスタンスを生成するか
         for _ in range(1):
             memo = {}
             (prem, hyp) = template
             prems = re.split("(?<=。)", prem)[:-1]
             prems_elements = [prem.split(' ') for prem in prems]
             hyp_elements = hyp.split(' ')
-            for elements in (prems_elements + [hyp_elements]):
+            e_index = 0
+            sentences = prems_elements + [hyp_elements]
+            while e_index < len(sentences):
                 perplexity = 100
+                counter = 0
                 while (perplexity > 50):
                     temp_memo = deepcopy(memo)
-                    new_elements = deepcopy(elements)
+                    new_elements = deepcopy(sentences[e_index])
                     for i, element in enumerate(new_elements):
                         if element in temp_memo:
                             new_elements[i] = temp_memo[element]
@@ -292,11 +309,21 @@ def generate_dataset_with_perplexity(out_file):
                             new_elements[i] = assign_word(element)
                             temp_memo[element] = new_elements[i]
                     perplexity = compute_perplexity(''.join(new_elements))
+                    # print(f"{int(perplexity)}" + "\t" + ''.join(new_elements))
+                    counter += 1
+                    # いつまで経ってもperplexityが小さくならない場合、最初の文ではまっている可能性があるのでやり直し
+                    if counter >= 10:
+                        break
+                if counter >= 10:
+                    memo = {}
+                    sentences = prems_elements + [hyp_elements]
+                    e_index = 0
+                    continue
                 memo = temp_memo
-                elements = new_elements
-                print(''.join(elements))
+                sentences[e_index] = new_elements
+                e_index += 1
 
-            texts.append([''.join(sum(prems_elements, [])), ''.join(hyp_elements)])
+            texts.append([''.join(sum(sentences[:-1], [])), ''.join(sentences[-1])])
 
     with open(out_file, 'w') as outfile:
         outfile.write('premise\thypothesis\n')
@@ -317,7 +344,8 @@ if __name__ == '__main__':
     with open('./vocab_list/place_list.txt', 'r') as infile:
         place_list = infile.read().splitlines()
 
-    with open('./vocab_list/np_list.txt', 'r') as infile:
+    # with open('./vocab_list/np_list.txt', 'r') as infile:
+    with open('./vocab_list/noun_list.txt', 'r') as infile:
         np_list = infile.read().splitlines()
 
     with open('./vocab_list/intransive_verb_list.txt', 'r') as infile:
@@ -328,6 +356,10 @@ if __name__ == '__main__':
         vp_ta_list = infile.read().splitlines()
         vp_ta_list = [vp_ta.split(',') for vp_ta in vp_ta_list]
 
+    with open('./vocab_list/basic_verb_list.txt', 'r') as infile:
+        vp_list = infile.read().splitlines()
+        vp_list = [vp.split(',') for vp in vp_list]
+
     with open('./vocab_list/common_agent_list.txt', 'r') as infile:
         common_agent_list = infile.read().splitlines()
 
@@ -336,7 +368,6 @@ if __name__ == '__main__':
 
     bert = "cl-tohoku/bert-base-japanese-whole-word-masking"
     roberta = "nlp-waseda/roberta-large-japanese"
-    model_name_str = "roberta"
 
     for model_name_str in ['bert', 'roberta']:
         if model_name_str == "roberta":
@@ -350,4 +381,4 @@ if __name__ == '__main__':
         out_file = 'dataset/' + model_name_str
         generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict')
         generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
-        # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
+        generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
