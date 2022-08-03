@@ -1,13 +1,13 @@
 premise	hypothesis
-agent_1 は place_1 に np_1 を vp_ta_1_prog いる。	agent_1 は 現在 place_1 に np_1 を vp_ta_1_prog いる。
-tp_1 以来、 agent_1 は place_1 に vp_zi_1 。現在、 tp_2 である。	agent_1 は tp_3 には place_1 に vp_zi_1_past 。
-agent_1 は tp_1 以来、 np_1 を vp_ta_1_prog きた。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
-agent_1 は tp_1 以来、 np_1 を vp_ta_1_prog いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
-tp_1 以来、 agent_1 は np_1 を vp_ta_1_prog いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
-agent_1 は tp_1 以来 np_1 を vp_ta_1_prog いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
-tp_1 に agent_1 は np_1 を vp_ta_1_past 。	np_1 は tp_2 に vp_zi_2_past 。
-agent_1 は tp_1 に vp_zi_1_past 。その agent_1 は tp_2 に vp_zi_2_past 。	agent_1 は tp_2 には vp_zi_3 て いた。
-昨日、 agent_1 は np_1 に vp_zi_1_past 。今日は tp_1 だ。	agent_1 は tp_2 に np_1 に vp_zi_1_past 。
+agent_1[ガ:1] は place_1[ニ:1] に np_1[ヲ:1] を vp_ta_1_prog[ガ,ニ,ヲ:1] いる。	agent_1 は 現在 place_1 に np_1 を vp_ta_1_prog いる。
+tp_1 以来、 agent_1[ガ:1] は place_1[ニ:1] に vp_zi_1[ガ,ニ:1] 。現在、 tp_2 である。	agent_1 は tp_3 には place_1 に vp_zi_1_past 。
+agent_1[ガ:1] は tp_1 以来、 np_1[ヲ:1] を vp_ta_1_prog[ガ,ヲ:1] きた。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
+agent_1[ガ:1] は tp_1 以来、 np_1[ヲ:1] を vp_ta_1_prog[ガ,ヲ:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
+tp_1 以来、 agent_1[ガ:1] は np_1[ヲ:1] を vp_ta_1_prog[ガ,ヲ:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
+agent_1[ガ:1] は tp_1 以来 np_1[ヲ:1] を vp_ta_1_prog[ガ,ヲ:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
+tp_1 に agent_1[ガ:1] は np_1[ヲ:1] を vp_ta_1_past[ガ,ヲ:1] 。	np_1 は tp_2 に vp_zi_2_past[ガ:1] 。
+agent_1[ガ:1] は tp_1 に vp_zi_1_past[ガ:1] 。その agent_1 は tp_2 に vp_zi_2_past[ガ:1] 。	agent_1 は tp_2 には vp_zi_3_prog[ガ:1] て いた。
+昨日、 agent_1[ガ:1] は np_1[ニ:1] に vp_zi_1_past[ガ,ニ:1] 。今日は tp_1 だ。	agent_1 は tp_2 に np_1 に vp_zi_1_past 。
 agent_1 は agent_2 が vp_zi_1 前に vp_zi_2_past 。 agent_2 は agent_3 が vp_zi_3 前に vp_zi_2_past 。	agent_1 は agent_3 が vp_zi_3 前に vp_zi_2_past 。
 agent_1 は agent_2 が vp_zi_1_past 後に vp_zi_2_past 。 agent_2 は agent_3 が vp_zi_3_past 後に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3_past 後に vp_zi_2_past 。
 agent_1 が vp_zi_1_past 。 agent_2 が vp_zi_1_past 。 agent_1 は agent_2 が vp_zi_1 前に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1_past 後で vp_zi_1_past 。

@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 import random
 from copy import deepcopy
 from transformers import pipeline, AutoTokenizer, AutoModelForMaskedLM
@@ -8,6 +9,7 @@ from pyknp import Juman
 import torch
 import numpy as np
 import re
+import pickle
 
 
 # vp 以外に語を割り当てる
@@ -331,11 +333,123 @@ def generate_dataset_with_perplexity(out_file):
             outfile.write(f'{text[0]}\t{text[1]}\n')
 
 
+def choice_cf(verb):
+    cases = re.match(".+?\\[(.+?):\\d+\\]", verb).groups()[0].split(',')
+    cases = set([case + "格" for case in cases])
+    case_cands = [cf_key for cf_key in cf_keys if cases <= cf_key]
+    while True:
+        selected_case = ','.join(sorted(list(random.choice(case_cands))))
+        selected_entry = random.choice(list(cf_dict[selected_case].keys()))
+        if '+' not in selected_entry.replace('+する/する', '').replace('+れる/れる', ''):
+            break
+    selected_dict = cf_dict[selected_case][selected_entry]
+    new_dict = {}
+    for case in list(cases):
+        while True:
+            words = random.choice(selected_dict[case]).split('+')
+            word = ''.join([w[:w.find('/')] for w in words])
+            new_dict[case] = word
+            if 'ノ格~' + case in selected_dict:
+                nokakus = random.choice(selected_dict['ノ格~' + case]).split('+')
+                nokaku = ''.join([n[:n.find('/')] for n in nokakus])
+                new_dict[case] = nokaku + 'の' + word
+            if '<' not in new_dict[case] and '>' not in new_dict[case]:
+                break
+    return selected_entry, new_dict
+
+
+def generate_dataset_with_cf(out_file):
+    texts = []
+    for template in tqdm(templates[:9]):
+        # 1つのテンプレートあたりいくつのインスタンスを生成するか
+        for _ in range(1):
+            memo = {}
+            (prem, hyp) = template
+
+            prems = re.split("(?<=。)", prem)[:-1]
+            prems_elements = [prem.split(' ') for prem in prems]
+            hyp_elements = hyp.split(' ')
+            sentences = prems_elements + [hyp_elements]
+            case_list = []
+            verbs = []
+            form_specifies = []
+            for element in sum(sentences, []):
+                if "vp" in element and "[" in element:
+                    while True:
+                        form_specify = set()
+                        verb, other_case = choice_cf(element)
+                        verb_base = verb[:verb.find('/')]
+                        if "+する/する+れる/れる" in verb:
+                            verb = verb_base + 'する'
+                            form_specify.add("受け身")
+                        elif "+する/する" in verb:
+                            verb = verb_base + 'する'
+                        else:
+                            verb = verb_base
+                            try:
+                                kotodama.transformVerb(verb, {"過去"} | form_specify)
+                            except ValueError:
+                                verb += 'する'
+                        try:
+                            kotodama.transformVerb(verb, {"過去"} | form_specify)
+                        except ValueError:
+                            continue
+                        break
+                    case_list.append(other_case)
+                    form_specifies.append(form_specify)
+                    verbs.append(verb)
+
+            for i, sentence in enumerate(sentences):
+                for j, element in enumerate(sentence):
+                    if element in memo:
+                        new_element = memo[element]
+                    elif 'vp' in element:
+                        ind = int(re.match('.*?(\\d).*?', element).groups()[0]) - 1
+                        if 'past' in element:
+                            new_element = kotodama.transformVerb(verbs[ind], {"過去"} | form_specifies[ind])
+                        elif 'prog' in element:
+                            new_element = kotodama.transformVerb(verbs[ind], {"て"} | form_specifies[ind])
+                        elif 'coni' in element:
+                            new_element = kotodama.transformVerb(verbs[ind], {"です・ます"} | form_specifies[ind])[:-2]
+                        else:
+                            new_element = kotodama.transformVerb(verbs[ind], form_specifies[ind])
+                    elif '[' in element:
+                        ind = int(element[element.find(':') + 1:element.find(']')]) - 1
+                        new_element = case_list[ind][element[element.find('[') + 1:element.find(':')] + '格']
+                        # new_element = new_element[:new_element.find('/')]
+                        memo[element[:element.find('[')]] = new_element
+                    elif 'tp' in element:
+                        # return(random.choice([str(random.randint(0, 23)) + '時', str(random.randint(1, 12)) + '月']))
+                        new_element = random.choice([str(random.randint(1, 12)) + '月'])
+                        memo[element] = new_element
+                    elif 'interval' in element:
+                        new_element = str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間'])
+                        memo[element] = new_element
+                    elif 'time_unit' in element:
+                        new_element = random.choice(['月', '年', '日'])
+                        memo[element] = new_element
+                    else:
+                        memo[element] = element
+                        new_element = element
+                    sentences[i][j] = new_element
+
+            texts.append([''.join(sum(sentences[:-1], [])), ''.join(sentences[-1])])
+
+    with open(out_file, 'w') as outfile:
+        outfile.write('premise\thypothesis\n')
+        for text in texts:
+            outfile.write(f'{text[0]}\t{text[1]}\n')
+
+
 if __name__ == '__main__':
     random.seed(0)
     janome_tokenizer = Tokenizer()
     kotodama.setSegmentationEngine(kotodama.SegmentationEngine.JANOME, janome_tokenizer)
     kotodama.disableError(Juman())
+    with open("./external_data/kyoto-univ-web-cf-2.0/cf_dict.pickle", "rb") as f:
+        cf_dict = pickle.load(f)
+    cf_keys = list(cf_dict.keys())
+    cf_keys = [set(key.split(',')) for key in cf_keys]
 
     with open('./dataset/template/template.tsv', 'r') as infile:
         templates = infile.read().splitlines()[1:]
@@ -366,19 +480,20 @@ if __name__ == '__main__':
     with open('./vocab_list/proper_agent_list.txt', 'r') as infile:
         proper_agent_list = infile.read().splitlines()
 
-    bert = "cl-tohoku/bert-base-japanese-whole-word-masking"
-    roberta = "nlp-waseda/roberta-large-japanese"
+    # bert = "cl-tohoku/bert-base-japanese-whole-word-masking"
+    # roberta = "nlp-waseda/roberta-large-japanese"
 
-    for model_name_str in ['bert', 'roberta']:
-        if model_name_str == "roberta":
-            model_name = roberta
-        else:
-            model_name = bert
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForMaskedLM.from_pretrained(model_name)
-        fill_mask = pipeline("fill-mask", model=model, tokenizer=tokenizer)
+    # for model_name_str in ['bert', 'roberta']:
+    #     if model_name_str == "roberta":
+    #         model_name = roberta
+    #     else:
+    #         model_name = bert
+    #     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    #     model = AutoModelForMaskedLM.from_pretrained(model_name)
+    #     fill_mask = pipeline("fill-mask", model=model, tokenizer=tokenizer)
 
-        out_file = 'dataset/' + model_name_str
-        generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict')
-        generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
-        generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
+    #     out_file = 'dataset/' + model_name_str
+    #     generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict')
+    #     generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
+    #     generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
+    generate_dataset_with_cf('dataset/cf/dataset_with_cf')
