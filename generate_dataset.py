@@ -12,127 +12,46 @@ import re
 import pickle
 
 
-# vp 以外に語を割り当てる
-def assign_word_wo_vp(element):
-    if 'agent' in element:
+# 動詞の活用
+def verb_transform(element, verb_list):
+    if 'conj' in element:
+        return(random.choice(verb_list)[1])
+    elif 'imp' in element:
+        return(random.choice(verb_list)[2])
+    elif 'past' in element:
+        return kotodama.transformVerb(random.choice(verb_list)[0], {"過去"})
+    elif 'prog' in element:
+        return kotodama.transformVerb(random.choice(verb_list)[0], {"て"})
+    elif 'coni' in element:
+        return kotodama.transformVerb(random.choice(verb_list)[0], {"です・ます"})[:-2]
+    else:
+        return(random.choice(verb_list)[0])
+
+
+# 全てに語を割り当てる woに指定されたものはパスされる
+def assign_word(element, without=[]):
+    if 'agent' in element and "agent" not in without:
         return(random.choice(proper_agent_list))
-    if 'np' in element:
+    if 'np' in element and "np" not in without:
         return(random.choice(np_list))
-    elif 'tp' in element:
+    if "vp" not in without:
+        if 'vp' in element:
+            return verb_transform(element, vp_list)
+        if 'vp_zi' in element:
+            return verb_transform(element, vp_zi_list)
+        if 'vp_ta' in element:
+            return verb_transform(element, vp_ta_list)
+    if 'tp' in element and 'tp' not in without:
         # return(random.choice([str(random.randint(0, 23)) + '時', str(random.randint(1, 12)) + '月']))
         return(random.choice([str(random.randint(1, 12)) + '月']))
-    elif 'interval' in element:
+    if 'interval' in element and 'interval' not in without:
         return(str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間']))
-    elif 'place' in element:
+    if 'place' in element and 'place' not in without:
         return(random.choice(place_list))
-    elif 'time_unit' in element:
+    if 'time_unit' in element and 'timu_unit' not in without:
         return(random.choice(['月', '年', '日']))
-    else:
-        return(element)
 
-# np 以外に語を割り当てる
-
-
-def assign_word_wo_np(element):
-    if 'agent' in element:
-        return(random.choice(proper_agent_list))
-    # 動詞を活用させる
-    elif 'vp_zi' in element:
-        if 'conj' in element:
-            return(random.choice(vp_zi_list)[1])
-        elif 'imp' in element:
-            return(random.choice(vp_zi_list)[2])
-        elif 'past' in element:
-            return kotodama.transformVerb(random.choice(vp_zi_list)[0], {"過去"})
-        elif 'prog' in element:
-            return kotodama.transformVerb(random.choice(vp_zi_list)[0], {"て"})
-        elif 'coni' in element:
-            return kotodama.transformVerb(random.choice(vp_zi_list)[0], {"です・ます"})[:-2]
-        else:
-            return(random.choice(vp_zi_list)[0])
-    elif 'vp_ta' in element:
-        if 'conj' in element:
-            return(random.choice(vp_ta_list)[1])
-        elif 'imp' in element:
-            return(random.choice(vp_ta_list)[2])
-        elif 'past' in element:
-            return kotodama.transformVerb(random.choice(vp_ta_list)[0], {"過去"})
-        elif 'prog' in element:
-            return kotodama.transformVerb(random.choice(vp_ta_list)[0], {"て"})
-        elif 'coni' in element:
-            return kotodama.transformVerb(random.choice(vp_ta_list)[0], {"です・ます"})[:-2]
-        else:
-            return(random.choice(vp_ta_list)[0])
-    elif 'tp' in element:
-        # return(random.choice([str(random.randint(0, 23)) + '時', str(random.randint(1, 12)) + '月']))
-        return(random.choice([str(random.randint(1, 12)) + '月']))
-    elif 'interval' in element:
-        return(str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間']))
-    elif 'place' in element:
-        return(random.choice(place_list))
-    elif 'time_unit' in element:
-        return(random.choice(['月', '年', '日']))
-    else:
-        return(element)
-
-# 全てに語を割り当てる
-
-
-def assign_word(element):
-    if 'agent' in element:
-        return(random.choice(proper_agent_list))
-    if 'np' in element:
-        return(random.choice(np_list))
-    elif 'vp' in element:
-        if 'conj' in element:
-            return(random.choice(vp_list)[1])
-        elif 'imp' in element:
-            return(random.choice(vp_list)[2])
-        elif 'past' in element:
-            return kotodama.transformVerb(random.choice(vp_list)[0], {"過去"})
-        elif 'prog' in element:
-            return kotodama.transformVerb(random.choice(vp_list)[0], {"て"})
-        elif 'coni' in element:
-            return kotodama.transformVerb(random.choice(vp_list)[0], {"です・ます"})[:-2]
-        else:
-            return(random.choice(vp_list)[0])
-    elif 'vp_zi' in element:
-        if 'conj' in element:
-            return(random.choice(vp_zi_list)[1])
-        elif 'imp' in element:
-            return(random.choice(vp_zi_list)[2])
-        elif 'past' in element:
-            return kotodama.transformVerb(random.choice(vp_zi_list)[0], {"過去"})
-        elif 'prog' in element:
-            return kotodama.transformVerb(random.choice(vp_zi_list)[0], {"て"})
-        elif 'coni' in element:
-            return kotodama.transformVerb(random.choice(vp_zi_list)[0], {"です・ます"})[:-2]
-        else:
-            return(random.choice(vp_zi_list)[0])
-    elif 'vp_ta' in element:
-        if 'conj' in element:
-            return(random.choice(vp_ta_list)[1])
-        elif 'imp' in element:
-            return(random.choice(vp_ta_list)[2])
-        elif 'past' in element:
-            return kotodama.transformVerb(random.choice(vp_ta_list)[0], {"過去"})
-        elif 'prog' in element:
-            return kotodama.transformVerb(random.choice(vp_ta_list)[0], {"て"})
-        elif 'coni' in element:
-            return kotodama.transformVerb(random.choice(vp_ta_list)[0], {"です・ます"})[:-2]
-        else:
-            return(random.choice(vp_ta_list)[0])
-    elif 'tp' in element:
-        # return(random.choice([str(random.randint(0, 23)) + '時', str(random.randint(1, 12)) + '月']))
-        return(random.choice([str(random.randint(1, 12)) + '月']))
-    elif 'interval' in element:
-        return(str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間']))
-    elif 'place' in element:
-        return(random.choice(place_list))
-    elif 'time_unit' in element:
-        return(random.choice(['月', '年', '日']))
-    else:
-        return(element)
+    return(element)
 
 
 # MLMによる動詞の割り当て
@@ -235,7 +154,7 @@ def generate_dataset_with_verb_predict(out_file):
                     if element in memo:
                         elements[i] = memo[element]
                     elif 'vp' not in element:
-                        elements[i] = assign_word_wo_vp(element)
+                        elements[i] = assign_word(element, ["vp"])
                         memo[element] = elements[i]
                 for i, element in enumerate(elements):
                     if element not in (list(memo.keys()) + list(memo.values())):
@@ -268,7 +187,7 @@ def generate_dataset_with_np_predict(out_file):
                     if element in memo:
                         elements[i] = memo[element]
                     elif 'np' not in element:
-                        elements[i] = assign_word_wo_np(element)
+                        elements[i] = assign_word(element, ["np"])
                         memo[element] = elements[i]
                 for i, element in enumerate(elements):
                     if element not in (list(memo.keys()) + list(memo.values())):
@@ -333,6 +252,7 @@ def generate_dataset_with_perplexity(out_file):
             outfile.write(f'{text[0]}\t{text[1]}\n')
 
 
+# テンプレートにあった格フレームの選択
 def choice_cf(verb):
     cases = re.match(".+?\\[(.+?):\\d+\\]", verb).groups()[0].split(',')
     cases = set([case + "格" for case in cases])
@@ -358,6 +278,7 @@ def choice_cf(verb):
     return selected_entry, new_dict
 
 
+# 格フレームを用いたデータ生成
 def generate_dataset_with_cf(out_file):
     texts = []
     for template in tqdm(templates[:9]):
@@ -416,21 +337,10 @@ def generate_dataset_with_cf(out_file):
                     elif '[' in element:
                         ind = int(element[element.find(':') + 1:element.find(']')]) - 1
                         new_element = case_list[ind][element[element.find('[') + 1:element.find(':')] + '格']
-                        # new_element = new_element[:new_element.find('/')]
                         memo[element[:element.find('[')]] = new_element
-                    elif 'tp' in element:
-                        # return(random.choice([str(random.randint(0, 23)) + '時', str(random.randint(1, 12)) + '月']))
-                        new_element = random.choice([str(random.randint(1, 12)) + '月'])
-                        memo[element] = new_element
-                    elif 'interval' in element:
-                        new_element = str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間'])
-                        memo[element] = new_element
-                    elif 'time_unit' in element:
-                        new_element = random.choice(['月', '年', '日'])
-                        memo[element] = new_element
                     else:
-                        memo[element] = element
-                        new_element = element
+                        new_element = assign_word(element, ["agent", "np", "vp", "place"])
+                        memo[element] = new_element
                     sentences[i][j] = new_element
 
             texts.append([''.join(sum(sentences[:-1], [])), ''.join(sentences[-1])])
@@ -480,20 +390,22 @@ if __name__ == '__main__':
     with open('./vocab_list/proper_agent_list.txt', 'r') as infile:
         proper_agent_list = infile.read().splitlines()
 
-    # bert = "cl-tohoku/bert-base-japanese-whole-word-masking"
-    # roberta = "nlp-waseda/roberta-large-japanese"
+    bert = "cl-tohoku/bert-base-japanese-whole-word-masking"
+    roberta = "nlp-waseda/roberta-large-japanese"
 
-    # for model_name_str in ['bert', 'roberta']:
-    #     if model_name_str == "roberta":
-    #         model_name = roberta
-    #     else:
-    #         model_name = bert
-    #     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    #     model = AutoModelForMaskedLM.from_pretrained(model_name)
-    #     fill_mask = pipeline("fill-mask", model=model, tokenizer=tokenizer)
+    if False:
+        for model_name_str in ['bert', 'roberta']:
+            if model_name_str == "roberta":
+                model_name = roberta
+            else:
+                model_name = bert
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForMaskedLM.from_pretrained(model_name)
+            fill_mask = pipeline("fill-mask", model=model, tokenizer=tokenizer)
 
-    #     out_file = 'dataset/' + model_name_str
-    #     generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict')
-    #     generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
-    #     generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
+            out_file = 'dataset/' + model_name_str
+            generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict')
+            generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
+            generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
+
     generate_dataset_with_cf('dataset/cf/dataset_with_cf')
