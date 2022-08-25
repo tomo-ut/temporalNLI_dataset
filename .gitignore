@@ -2,3 +2,5 @@
 .vscode
 external_data
 sandbox
+test.py
+vocab_list/vocablist_edited.txt
