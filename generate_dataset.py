@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 import random
 from copy import deepcopy
 from transformers import pipeline, AutoTokenizer, AutoModelForMaskedLM
@@ -10,6 +9,16 @@ import torch
 import numpy as np
 import re
 import pickle
+import MeCab
+
+
+# 単語の品詞を取得する
+def get_pos(word):
+    p_token = f"{word}\n"
+    parsed_lines = tagger.parse(p_token).splitlines()[:-1]
+    features = [parsed_line.split("\t")[1] for parsed_line in parsed_lines]
+    pos = [feature.split(",")[0] for feature in features]
+    return ''.join(pos)
 
 
 # 動詞の活用
@@ -255,95 +264,141 @@ def generate_dataset_with_perplexity(out_file):
 # テンプレートにあった格フレームの選択
 def choice_cf(verb):
     cases = re.match(".+?\\[(.+?):\\d+\\]", verb).groups()[0].split(',')
-    cases = set([case + "格" for case in cases])
+    origin_cases = [case for case in cases]
+    cases = set([re.match("(.+?)\\d*$", case).groups()[0] for case in origin_cases])
     case_cands = [cf_key for cf_key in cf_keys if cases <= cf_key]
+    # 全ての条件を満たした有効な核フレームが得られるまでループ
     while True:
-        selected_case = ','.join(sorted(list(random.choice(case_cands))))
-        selected_entry = random.choice(list(cf_dict[selected_case].keys()))
-        if '+' not in selected_entry.replace('+する/する', '').replace('+れる/れる', ''):
-            break
-    selected_dict = cf_dict[selected_case][selected_entry]
-    new_dict = {}
-    for case in list(cases):
+        is_validcf = True
+        # 選んだ格フレーム、動詞がブラックリストに入ってる動詞や変な動詞に該当しなくなるまでループ
         while True:
-            words = random.choice(selected_dict[case]).split('+')
-            word = ''.join([w[:w.find('/')] for w in words])
-            new_dict[case] = word
-            if 'ノ格~' + case in selected_dict:
-                nokakus = random.choice(selected_dict['ノ格~' + case]).split('+')
-                nokaku = ''.join([n[:n.find('/')] for n in nokakus])
-                new_dict[case] = nokaku + 'の' + word
-            if '<' not in new_dict[case] and '>' not in new_dict[case]:
+            is_in_nokaku = False
+            selected_case = ','.join(sorted(list(random.choice(case_cands))))
+            selected_entry = random.choice(list(cf_dict[selected_case].keys()))
+            split_entries = selected_entry.split('+')
+            origin_verb = ''.join([split_entry[:split_entry.find('/')] for split_entry in split_entries])
+            if origin_verb in black_verb_set:
+                continue
+            if 'ノ格' not in ''.join(list(cases)):
+                for case in cases:
+                    if 'ノ格~' + case in selected_case:
+                        is_in_nokaku = True
+            if is_in_nokaku:
+                continue
+            if '外の関係' in selected_case:
+                continue
+            if '+' not in selected_entry.replace('+する/する', '').replace('+れる/れる', ''):
                 break
+        selected_dict = cf_dict[selected_case][selected_entry]
+        new_dict = {}
+        word_list = []
+        # 選んだ格フレームからテンプレート中の格に単語割り当て
+        for case in origin_cases:
+            case_wo_ind = re.match("(.+?)\\d*$", case).groups()[0]
+            inds = list(range(len(selected_dict[case_wo_ind])))
+            random.shuffle(inds)
+            for ind in inds:
+                words = selected_dict[case_wo_ind][ind].split('+')
+                word = ''.join([w[:w.find('/')] for w in words])
+                pos = get_pos(word)
+                if word in word_list or word in black_vocab_set or '名詞' not in pos or '動詞' in pos:
+                    continue
+                else:
+                    word_list.append(word)
+                new_dict[case] = word
+                # if 'ノ格~' + case_wo_ind in selected_dict:
+                #     nokakus = random.choice(selected_dict['ノ格~' + case_wo_ind]).split('+')
+                #     nokaku = ''.join([n[:n.find('/')] for n in nokakus])
+                #     new_dict[case] = nokaku + 'の' + word
+                if '<' not in new_dict[case] and '>' not in new_dict[case]:
+                    break
+            else:
+                is_validcf = False
+        if is_validcf:
+            break
     return selected_entry, new_dict
 
 
+# 格フレームを用いた文生成
+def generate_sentence_with_cf(template):
+    memo = {}
+    (prem, hyp) = template
+
+    prems = re.split("(?<=。)", prem)[:-1]
+    prems_elements = [prem.split(' ') for prem in prems]
+    hyp_elements = hyp.split(' ')
+    sentences = prems_elements + [hyp_elements]
+    case_list = []
+    verbs = []
+    form_specifies = []
+    for element in sum(sentences, []):
+        if "vp" in element and "[" in element:
+            while True:
+                form_specify = set()
+                verb, other_case = choice_cf(element)
+                verb_base = verb[:verb.find('/')]
+                if "+する/する+れる/れる" in verb:
+                    verb = verb_base + 'する'
+                    form_specify.add("受け身")
+                elif "+する/する" in verb:
+                    verb = verb_base + 'する'
+                else:
+                    verb = verb_base
+                    try:
+                        kotodama.transformVerb(verb, {"過去"} | form_specify)
+                    except ValueError:
+                        verb += 'する'
+                try:
+                    kotodama.transformVerb(verb, {"過去"} | form_specify)
+                except ValueError:
+                    continue
+                break
+            case_list.append(other_case)
+            form_specifies.append(form_specify)
+            verbs.append(verb)
+
+    for i, sentence in enumerate(sentences):
+        for j, element in enumerate(sentence):
+            if element in memo:
+                new_element = memo[element]
+            elif 'vp' in element:
+                ind = int(re.match('.*?(\\d).*?', element).groups()[0]) - 1
+                if 'past' in element:
+                    new_element = kotodama.transformVerb(verbs[ind], {"過去"} | form_specifies[ind])
+                elif 'prog' in element:
+                    new_element = kotodama.transformVerb(verbs[ind], {"て"} | form_specifies[ind])
+                elif 'coni' in element:
+                    new_element = kotodama.transformVerb(verbs[ind], {"です・ます"} | form_specifies[ind])[:-2]
+                else:
+                    new_element = kotodama.transformVerb(verbs[ind], form_specifies[ind])
+            elif '[' in element:
+                ind = int(element[element.find(':') + 1:element.find(']')]) - 1
+                new_element = case_list[ind][element[element.find('[') + 1:element.find(':')]]
+                memo[element[:element.find('[')]] = new_element
+            else:
+                new_element = assign_word(element, ["agent", "np", "vp", "place"])
+                memo[element] = new_element
+            sentences[i][j] = new_element
+
+    return [''.join(sentence) for sentence in sentences]
+
+
 # 格フレームを用いたデータ生成
-def generate_dataset_with_cf(out_file):
+def generate_dataset_with_cf(out_file, perplexity_check):
     texts = []
-    for template in tqdm(templates[:9]):
+    for template in tqdm(templates):
         # 1つのテンプレートあたりいくつのインスタンスを生成するか
-        for _ in range(1):
-            memo = {}
-            (prem, hyp) = template
-
-            prems = re.split("(?<=。)", prem)[:-1]
-            prems_elements = [prem.split(' ') for prem in prems]
-            hyp_elements = hyp.split(' ')
-            sentences = prems_elements + [hyp_elements]
-            case_list = []
-            verbs = []
-            form_specifies = []
-            for element in sum(sentences, []):
-                if "vp" in element and "[" in element:
-                    while True:
-                        form_specify = set()
-                        verb, other_case = choice_cf(element)
-                        verb_base = verb[:verb.find('/')]
-                        if "+する/する+れる/れる" in verb:
-                            verb = verb_base + 'する'
-                            form_specify.add("受け身")
-                        elif "+する/する" in verb:
-                            verb = verb_base + 'する'
-                        else:
-                            verb = verb_base
-                            try:
-                                kotodama.transformVerb(verb, {"過去"} | form_specify)
-                            except ValueError:
-                                verb += 'する'
-                        try:
-                            kotodama.transformVerb(verb, {"過去"} | form_specify)
-                        except ValueError:
-                            continue
-                        break
-                    case_list.append(other_case)
-                    form_specifies.append(form_specify)
-                    verbs.append(verb)
-
-            for i, sentence in enumerate(sentences):
-                for j, element in enumerate(sentence):
-                    if element in memo:
-                        new_element = memo[element]
-                    elif 'vp' in element:
-                        ind = int(re.match('.*?(\\d).*?', element).groups()[0]) - 1
-                        if 'past' in element:
-                            new_element = kotodama.transformVerb(verbs[ind], {"過去"} | form_specifies[ind])
-                        elif 'prog' in element:
-                            new_element = kotodama.transformVerb(verbs[ind], {"て"} | form_specifies[ind])
-                        elif 'coni' in element:
-                            new_element = kotodama.transformVerb(verbs[ind], {"です・ます"} | form_specifies[ind])[:-2]
-                        else:
-                            new_element = kotodama.transformVerb(verbs[ind], form_specifies[ind])
-                    elif '[' in element:
-                        ind = int(element[element.find(':') + 1:element.find(']')]) - 1
-                        new_element = case_list[ind][element[element.find('[') + 1:element.find(':')] + '格']
-                        memo[element[:element.find('[')]] = new_element
-                    else:
-                        new_element = assign_word(element, ["agent", "np", "vp", "place"])
-                        memo[element] = new_element
-                    sentences[i][j] = new_element
-
-            texts.append([''.join(sum(sentences[:-1], [])), ''.join(sentences[-1])])
+        for _ in range(10):
+            while True:
+                text = generate_sentence_with_cf(template)
+                max_perplexity = 0
+                if perplexity_check:
+                    for t in text:
+                        max_perplexity = max(max_perplexity, compute_perplexity(t))
+                if max_perplexity < 100:
+                    break
+                random.seed(max_perplexity)
+            texts.append([''.join(text[:-1]), text[-1]])
 
     with open(out_file, 'w') as outfile:
         outfile.write('premise\thypothesis\n')
@@ -353,6 +408,7 @@ def generate_dataset_with_cf(out_file):
 
 if __name__ == '__main__':
     random.seed(0)
+    tagger = MeCab.Tagger("-p")
     janome_tokenizer = Tokenizer()
     kotodama.setSegmentationEngine(kotodama.SegmentationEngine.JANOME, janome_tokenizer)
     kotodama.disableError(Juman())
@@ -390,11 +446,19 @@ if __name__ == '__main__':
     with open('./vocab_list/proper_agent_list.txt', 'r') as infile:
         proper_agent_list = infile.read().splitlines()
 
+    with open('./vocab_list/vocab_black_list.txt', 'r') as infile:
+        black_vocab_set = set(infile.read().splitlines())
+
+    with open('./vocab_list/verb_black_list.txt', 'r') as infile:
+        black_verb_set = set(infile.read().splitlines())
+
     bert = "cl-tohoku/bert-base-japanese-whole-word-masking"
     roberta = "nlp-waseda/roberta-large-japanese"
 
-    if False:
-        for model_name_str in ['bert', 'roberta']:
+    perplexity_check = False
+    if perplexity_check:
+        # for model_name_str in ['bert', 'roberta']:
+        for model_name_str in ['roberta']:
             if model_name_str == "roberta":
                 model_name = roberta
             else:
@@ -403,9 +467,9 @@ if __name__ == '__main__':
             model = AutoModelForMaskedLM.from_pretrained(model_name)
             fill_mask = pipeline("fill-mask", model=model, tokenizer=tokenizer)
 
-            out_file = 'dataset/' + model_name_str
-            generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict')
-            generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
-            generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
+            # out_file = 'dataset/' + model_name_str
+            # generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict')
+            # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
+            # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
 
-    generate_dataset_with_cf('dataset/cf/dataset_with_cf')
+    generate_dataset_with_cf('dataset/cf/dataset_with_cf', perplexity_check)

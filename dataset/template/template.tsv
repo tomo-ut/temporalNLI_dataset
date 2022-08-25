@@ -1,47 +1,41 @@
 premise	hypothesis
-agent_1[ガ:1] は place_1[ニ:1] に np_1[ヲ:1] を vp_ta_1_prog[ガ,ニ,ヲ:1] いる。	agent_1 は 現在 place_1 に np_1 を vp_ta_1_prog いる。
-tp_1 以来、 agent_1[ガ:1] は place_1[ニ:1] に vp_zi_1[ガ,ニ:1] 。現在、 tp_2 である。	agent_1 は tp_3 には place_1 に vp_zi_1_past 。
-agent_1[ガ:1] は tp_1 以来、 np_1[ヲ:1] を vp_ta_1_prog[ガ,ヲ:1] きた。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
-agent_1[ガ:1] は tp_1 以来、 np_1[ヲ:1] を vp_ta_1_prog[ガ,ヲ:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
-tp_1 以来、 agent_1[ガ:1] は np_1[ヲ:1] を vp_ta_1_prog[ガ,ヲ:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
-agent_1[ガ:1] は tp_1 以来 np_1[ヲ:1] を vp_ta_1_prog[ガ,ヲ:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
-tp_1 に agent_1[ガ:1] は np_1[ヲ:1] を vp_ta_1_past[ガ,ヲ:1] 。	np_1 は tp_2 に vp_zi_2_past[ガ:1] 。
-agent_1[ガ:1] は tp_1 に vp_zi_1_past[ガ:1] 。その agent_1 は tp_2 に vp_zi_2_past[ガ:1] 。	agent_1 は tp_2 には vp_zi_3_prog[ガ:1] て いた。
-昨日、 agent_1[ガ:1] は np_1[ニ:1] に vp_zi_1_past[ガ,ニ:1] 。今日は tp_1 だ。	agent_1 は tp_2 に np_1 に vp_zi_1_past 。
-agent_1 は agent_2 が vp_zi_1 前に vp_zi_2_past 。 agent_2 は agent_3 が vp_zi_3 前に vp_zi_2_past 。	agent_1 は agent_3 が vp_zi_3 前に vp_zi_2_past 。
-agent_1 は agent_2 が vp_zi_1_past 後に vp_zi_2_past 。 agent_2 は agent_3 が vp_zi_3_past 後に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3_past 後に vp_zi_2_past 。
-agent_1 が vp_zi_1_past 。 agent_2 が vp_zi_1_past 。 agent_1 は agent_2 が vp_zi_1 前に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1_past 後で vp_zi_1_past 。
-agent_1 が vp_zi_1_past 。 agent_2 が vp_zi_1_past 。 agent_1 は agent_2 が vp_zi_1_past 後に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1 前に vp_zi_1_past 。
-agent_1 が vp_zi_1_past 。 agent_2 が vp_zi_1_past 。 agent_2 は agent_1 が vp_zi_1 前に vp_zi_1_past 。	agent_1 は agent_2 が vp_zi_1_past 後で vp_zi_1_past 。
-agent_1 が np_1 を vp_ta_1_past 。 agent_2 が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より先に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より後に np_1 を vp_ta_1_past 。
-agent_1 が np_1 を vp_ta_1_past 。 agent_2 が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より後に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より先に np_1 を vp_ta_1_past 。
-agent_1 が vp_zi_1_past 。 agent_2 が vp_zi_1_past 。 agent_1 は agent_2 が vp_zi_1 前に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1_past 後に vp_zi_1_past 。
-agent_1 が place_1 まで vp_zi_1_past 。 agent_2 が place_2 まで vp_zi_2_past 。 agent_1 は agent_2 が place_2 まで vp_zi_2 前に、 place_1 まで vp_zi_1_past 。	agent_2 は agent_1 が place_1 まで vp_zi_1_past 後に、 place_2 まで vp_zi_2_past 。
-agent_1 は vp_zi_1 前に np_1 から vp_zi_2_past 。	agent_1 は vp_zi_1_past 。
-agent_1 は tp_1 に place_1 に vp_zi_1_prog いた。	agent_1 は tp_2 に place_1 に vp_zi_1_prog いた。
-agent_1 は tp_1 に np_only_1 の np_1 を vp_ta_1_past 。	agent_1 は tp_2 に np_only_1 の np_1 を vp_ta_1_past 。
-agent_1 は tp_1 に np_1 を vp_ta_1_past 。	agent_1 は tp_2 に np_1 を vp_ta_1_past 。
-agent_1 は tp_1 に np_1 を vp_ta_1_past 。	agent_1 は tp_2 にその np_1 を vp_ta_1_past 。
-agent_1 が tp_1 に np_1 を vp_ta_1_past 。	agent_1 はそれを tp_2 に vp_ta_1_past 。
-agent_1 が tp_1 に np_1 を vp_ta_1_past 。	agent_1 が tp_2 に np_1 を vp_ta_1_past 。
-agent_1 が interval_1 以内に np_1 を vp_ta_1_past 。 agent_1 は tp_2 にその np_1 を vp_ta_1_coni 始めた。	agent_1 は tp_3 までにその np_1 を vp_ta_1_coni 終えた。
-agent_1 が interval_1 以内に np_1 を vp_ta_1_past 。	agent_1 はその np_1 を vp_ta_1 のに interval_1 を vp_ta_2_past 。
-agent_1 が interval_1 以内に np_1 を vp_ta_1_past 。	agent_1 はその np_1 を vp_ta_1 のに interval_1 以上 vp_zi_2_past 。
-agent_1 が interval_1 以内に np_1 を vp_ta_1_past 。	agent_1 は interval_2 以内に np_1 を vp_ta_1_past 。
-agent_1 が interval_1 以内に np_1 を vp_ta_1_past 。	agent_1 は np_1 を vp_ta_1_past 。
-agent_1 は interval_1 以内に np_1 を vp_ta_1_past 。	agent_1 は np_1 を vp_ta_1_past 。
-agent_1 は interval_1 以内に np_1 の np_2 を vp_ta_1_past 。	agent_1 は np_2 を vp_ta_1 のに interval_1 を vp_ta_2_past 。
-agent_1 は interval_1 place_1 に vp_zi_1_past 。	agent_1 は interval_2 place_1 に vp_zi_1_past 。
-agent_1 は interval_1 place_1 に vp_zi_1_past 。	agent_1 はちょうど interval_2 place_1 に vp_zi_1_past 。
-agent_1 は place_1 に interval_1 vp_zi_1_past 。	agent_1 は place_1 に vp_zi_1_past 。
-agent_1 は np_1 の np_2 を interval_1 vp_ta_1_past 。	agent_1 は np_1 の np_2 を interval_2 vp_ta_1_past 。
-agent_1 は np_1 の np_2 を interval_1 vp_ta_1_past 。	agent_1 は np_1 の np_2 を vp_ta_1_past 。
-agent_1 は interval_1 np_1 を vp_ta_1_past 。	agent_1 は interval_2 np_1 を vp_ta_1_past 。
-agent_1 は interval_1 np_1 を vp_ta_1_past 。	agent_1 は np_1 を vp_ta_1_past 。
-tp_1 、 agent_1 は毎 time_unit_1 np_1 を vp_ta_1_past 。	agent_1 は tp_2 に np_1 を vp_ta_1_past 。
-agent_1 は毎 time_unit_1 np_1 に np_2 を vp_ta_1_past 。	agent_1 が毎 time_unit_1 np_2 を vp_ta_1_past agent_2 が vp_zi_2 。
-agent_1 は tp_1 に place_1 を vp_ta_1_past 。それから、 agent_1 は np_2 を vp_ta_2_prog place に vp_zi_3_past 。	agent_1 は np_2 を vp_ta_2_prog place_1 に vp_zi_1 前に、 np_1 を vp_ta_1_past 。
-agent_1 はいつも np_1 を vp_ta_1_prog vp_zi_2 。 tp_1 に agent_1 は np_1 を vp_ta_2_past 。	agent_1 は tp_1 に np_1 を vp_ta_1_prog vp_zi_2_past 。
-agent_1 は決して np_1 を vp_ta_1_prog vp_zi_2 ことはない。 tp_1 に agent_1 は np_1 を vp_ta_2_past 。	agent_1 は tp_1 に np_1 を vp_ta_1_prog vp_zi_2_past 。
-agent_1 は tp_1 に place_1 に vp_zi_1_past 。今日は tp_2 だ。 agent_1 はまだ place_1 に vp_zi_2_prog いる。	agent_1 は tp_3 に place_1 に vp_zi_3_past 。
-agent_1 が place_1 に vp_zi_1_past 時、 agent_1 は interval_1 np_ev_1 を vp_ta_2_prog いた。	agent_1 は place_1 に vp_zi_1_past relative_tp_1 に np_ev_1 を vp_ta_2_prog いた。
+agent_1[ガ格:1] は place_1[ニ格:1] に np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ニ格,ヲ格:1] いる。	agent_1 は 現在 place_1 に np_1 を vp_ta_1_prog いる。
+tp_1 以来、 agent_1[ガ格:1] は place_1[ニ格:1] に vp_zi_1[ガ格,ニ格:1] 。現在、 tp_2 である。	agent_1 は tp_3 には place_1 に vp_zi_1_past 。
+agent_1[ガ格:1] は tp_1 以来、 np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:1] きた。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] は tp_1 以来、 np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
+tp_1 以来、 agent_1[ガ格:1] は np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] は tp_1 以来 np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
+昨日、 agent_1[ガ格:1] は np_1[ニ格:1] に vp_zi_1_past[ガ格,ニ格:1] 。今日は tp_1 だ。	agent_1 は tp_2 に np_1 に vp_zi_1_past 。
+agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1[ガ格:1] 前に vp_zi_2_past[ガ格:2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3[ガ格:3] 前に vp_zi_2_past 。	agent_1 は agent_3 が vp_zi_3 前に vp_zi_2_past 。
+agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1_past[ガ格:1] 後に vp_zi_2_past[ガ格:2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3_past[ガ格:3] 後に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3_past 後に vp_zi_2_past 。
+agent_1[ガ格:1] が vp_zi_1_past[ガ格:1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格:2] 。 agent_1 は agent_2 が vp_zi_2 前に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1_past 後で vp_zi_2_past 。
+agent_1[ガ格:1] が vp_zi_1_past[ガ格:1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格:2] 。 agent_1 は agent_2 が vp_zi_2_past 後に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1 前に vp_zi_2_past 。
+agent_1[ガ格:1] が vp_zi_1_past[ガ格:1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格:2] 。 agent_2 は agent_1 が vp_zi_1 前に vp_zi_2_past 。	agent_1 は agent_2 が vp_zi_2_past 後で vp_zi_1_past 。
+agent_1[ガ格1:1] が np_1[ヲ格:1] を vp_ta_1_past[ガ格1,ガ格2,ヲ格:1] 。 agent_2[ガ格2:1] が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より先に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より後に np_1 を vp_ta_1_past 。
+agent_1[ガ格1:1] が np_1[ヲ格:1] を vp_ta_1_past[ガ格1,ガ格2,ヲ格:1] 。 agent_2[ガ格2:1] が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より後に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より先に np_1 を vp_ta_1_past 。
+agent_1[ガ格1:1] が vp_zi_1_past[ガ格1,ガ格2:1] 。 agent_2[ガ格2:1] が vp_zi_1_past 。 agent_1 は agent_2 が vp_zi_1 前に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1_past 後に vp_zi_1_past 。
+agent_1[ガ格:1] が place_1[マデ格:1] まで vp_zi_1_past[ガ格,マデ格:1] 。 agent_2[ガ格:2] が place_2[マデ格:2] まで vp_zi_2_past[ガ格,マデ格:2] 。 agent_1 は agent_2 が place_2 まで vp_zi_2 前に、 place_1 まで vp_zi_1_past 。	agent_2 は agent_1 が place_1 まで vp_zi_1_past 後に、 place_2 まで vp_zi_2_past 。
+agent_1[ガ格:1] は tp_1 に place_1[ニ格:1] に vp_zi_1_prog[ガ格,ニ格:1] いた。	agent_1 は tp_2 に place_1 に vp_zi_1_prog いた。
+agent_1[ガ格:1] は tp_1 に np_only_1[ノ格~ヲ格:1] の np_1[ヲ格:1] を vp_ta_1_past[ガ格,ノ格~ヲ格,ヲ格:1] 。	agent_1 は tp_2 に np_only_1 の np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] は tp_1 に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 は tp_2 に np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] は tp_1 に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 は tp_2 にその np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] が tp_1 に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 はそれを tp_2 に vp_ta_1_past 。
+agent_1[ガ格:1] が tp_1 に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 が tp_2 に np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] が interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。 agent_1 は tp_2 にその np_1 を vp_ta_1_coni 始めた。	agent_1 は tp_3 までにその np_1 を vp_ta_1_coni 終えた。
+agent_1[ガ格:1] が interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_1 を費やした。
+agent_1[ガ格:1] が interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_1 以上費やした。
+agent_1[ガ格:1] が interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 は interval_2 以内に np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] が interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 は np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] は interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 は np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] は interval_1 以内に np_1[ノ格~ヲ格:1] の np_2[ヲ格:1] を vp_ta_1_past[ガ格,ノ格~ヲ格,ヲ格:1] 。	agent_1 は np_2 を vp_ta_1 のに interval_1 を費やした。
+agent_1[ガ格:1] は interval_1 place_1[ニ格:1] に vp_zi_1_past[ガ格,ニ格:1] 。	agent_1 は interval_2 place_1 に vp_zi_1_past 。
+agent_1[ガ格:1] は interval_1 place_1[ニ格:1] に vp_zi_1_past[ガ格,ニ格:1] 。	agent_1 はちょうど interval_2 place_1 に vp_zi_1_past 。
+agent_1[ガ格:1] は place_1[ニ格:1] に interval_1 vp_zi_1_past[ガ格,ニ格:1] 。	agent_1 は place_1 に vp_zi_1_past 。
+agent_1[ガ格:1] は np_1[ノ格~ヲ格:1] の np_2[ヲ格:1] を interval_1 vp_ta_1_past[ガ格,ノ格~ヲ格,ヲ格:1] 。	agent_1 は np_1 の np_2 を interval_2 vp_ta_1_past 。
+agent_1[ガ格:1] は np_1[ノ格~ヲ格:1] の np_2[ヲ格:1] を interval_1 vp_ta_1_past[ガ格,ノ格~ヲ格,ヲ格:1] 。	agent_1 は np_1 の np_2 を vp_ta_1_past 。
+agent_1[ガ格:1] は interval_1 np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 は interval_2 np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] は interval_1 np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 は np_1 を vp_ta_1_past 。
+tp_1 、 agent_1[ガ格:1] は毎 time_unit_1 np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 は tp_2 に np_1 を vp_ta_1_past 。
+agent_1[ガ格:1] は毎 time_unit_1 np_1[ニ格:1] に np_2[ヲ格:1] を vp_ta_1_past[ガ格,ニ格,ヲ格:1] 。	agent_1 が毎 time_unit_1 np_2 を vp_ta_1_past np_1 が存在する。
+agent_1[ガ格:1] はいつも np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:1] 。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_1 に np_1 を遅れて vp_ta_1_past 。
+agent_1[ガ格:1] は決して np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:1] ことはない。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_1 に np_1 を遅れて vp_ta_1_past 。
