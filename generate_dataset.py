@@ -303,6 +303,8 @@ def choice_cf(verb):
                 pos = get_pos(word)
                 if word in word_list or word in black_vocab_set or '名詞' not in pos or '動詞' in pos:
                     continue
+                elif case_wo_ind == 'ガ格' and word not in agent_list:
+                    continue
                 else:
                     word_list.append(word)
                 new_dict[case] = word
@@ -446,6 +448,9 @@ if __name__ == '__main__':
     with open('./vocab_list/proper_agent_list.txt', 'r') as infile:
         proper_agent_list = infile.read().splitlines()
 
+    with open('./vocab_list/agent_list.txt', 'r') as infile:
+        agent_list = infile.read().splitlines()
+
     with open('./vocab_list/vocab_black_list.txt', 'r') as infile:
         black_vocab_set = set(infile.read().splitlines())
 
@@ -472,4 +477,4 @@ if __name__ == '__main__':
             # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
             # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
 
-    generate_dataset_with_cf('dataset/cf/dataset_with_cf', perplexity_check)
+    generate_dataset_with_cf('dataset/cf/dataset_with_cf_agent', perplexity_check)
