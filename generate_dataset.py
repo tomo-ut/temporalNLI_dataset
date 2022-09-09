@@ -365,6 +365,13 @@ def generate_sentence_with_cf(template):
                 new_element = memo[element]
             elif 'vp' in element:
                 ind = int(re.match('.*?(\\d).*?', element).groups()[0]) - 1
+                suffix = ''
+                if 'stative' in element and verbs[ind] not in stative_verb_list:
+                    element += 'prog'
+                    suffix = 'いる'
+                    if 'past' in element:
+                        suffix = 'いた'
+                        element = element.replace('past', '')
                 if 'past' in element:
                     new_element = kotodama.transformVerb(verbs[ind], {"過去"} | form_specifies[ind])
                 elif 'prog' in element:
@@ -373,6 +380,7 @@ def generate_sentence_with_cf(template):
                     new_element = kotodama.transformVerb(verbs[ind], {"です・ます"} | form_specifies[ind])[:-2]
                 else:
                     new_element = kotodama.transformVerb(verbs[ind], form_specifies[ind])
+                new_element += suffix
             elif '[' in element:
                 ind = int(element[element.find(':') + 1:element.find(']')]) - 1
                 new_element = case_list[ind][element[element.find('[') + 1:element.find(':')]]
@@ -456,6 +464,9 @@ if __name__ == '__main__':
 
     with open('./vocab_list/verb_black_list.txt', 'r') as infile:
         black_verb_set = set(infile.read().splitlines())
+
+    with open('./vocab_list/stative_verb_list.txt', 'r') as infile:
+        stative_verb_list = infile.read().splitlines()
 
     bert = "cl-tohoku/bert-base-japanese-whole-word-masking"
     roberta = "nlp-waseda/roberta-large-japanese"

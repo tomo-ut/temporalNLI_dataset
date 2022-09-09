@@ -1,6 +1,6 @@
 premise	hypothesis
 agent_1[ガ格:1] は place_1[ニ格:1] に np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ニ格,ヲ格:1] いる。	agent_1 は 現在 place_1 に np_1 を vp_ta_1_prog いる。
-tp_1 以来、 agent_1[ガ格:1] は place_1[ニ格:1] に vp_zi_1[ガ格,ニ格:1] 。現在、 tp_2 である。	agent_1 は tp_3 には place_1 に vp_zi_1_past 。
+tp_1 以来、 agent_1[ガ格:1] は place_1[ニ格:1] に stative_vp_zi_1[ガ格,ニ格:1] 。現在、 tp_2 である。	agent_1 は tp_3 には place_1 に stative_vp_zi_1_past 。
 agent_1[ガ格:1] は tp_1 以来、 np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:1] きた。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
 agent_1[ガ格:1] は tp_1 以来、 np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
 tp_1 以来、 agent_1[ガ格:1] は np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。
