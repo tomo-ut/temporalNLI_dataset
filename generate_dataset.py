@@ -338,7 +338,7 @@ def substitute_time(cond, time_infos, memo):
     if 'interval' in cond:
         return str(time_infos[cond.replace(' ', '')]['start']['nt'])
     if 'time_unit' in cond:
-        d = {'年': 'year', '月': 'month', '日': 'date', '時': 'hour'}
+        d = {'年': 'year', '月': 'month', '日': 'day', '時': 'hour'}
         return d[memo[cond.replace(' ', '')]]
     c = 1
     for unit in ['hour', 'day', 'month', 'year']:
@@ -363,7 +363,7 @@ def generate_condition(time_infos, cond, memo):
 
 
 def sum_time(time_info):
-    return time_info['hour'] + 10**2 * time_info['date'] + 10**4 * time_info['month'] + 10**6 * time_info['year']
+    return time_info['hour'] + 10**2 * time_info['day'] + 10**4 * time_info['month'] + 10**6 * time_info['year']
 
 
 def extract_time(time_str, element):
