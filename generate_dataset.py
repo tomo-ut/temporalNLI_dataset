@@ -10,6 +10,8 @@ import numpy as np
 import re
 import pickle
 import MeCab
+import datetime
+import time
 
 
 # 単語の品詞を取得する
@@ -57,7 +59,7 @@ def assign_word(element, without=[]):
         return(str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間']))
     if 'place' in element and 'place' not in without:
         return(random.choice(place_list))
-    if 'time_unit' in element and 'timu_unit' not in without:
+    if 'time_unit' in element and 'time_unit' not in without:
         return(random.choice(['月', '年', '日']))
 
     return(element)
@@ -321,10 +323,152 @@ def choice_cf(verb):
     return selected_entry, new_dict
 
 
+def substitute_time(cond, time_infos, memo):
+    for op in ['or', '<=', '<', '>=', '>', '!=', '==', '+', '-', '*']:
+        if op in cond:
+            return substitute_time(cond.split(op)[0], time_infos, memo) + \
+                f' {op} ' + substitute_time(cond.split(op)[1], time_infos, memo)
+    if 'tp' in cond:
+        if 'start' in cond:
+            return str(time_infos[cond.replace(' ', '').replace('.start', '')]['start']['nt'])
+        if 'end' in cond:
+            return str(time_infos[cond.replace(' ', '').replace('.end', '')]['end']['nt'])
+        if 'min_unit' in cond:
+            return str(time_infos[cond.replace(' ', '').replace('.min_unit', '')]['min_unit'])
+    if 'interval' in cond:
+        return str(time_infos[cond.replace(' ', '')]['start']['nt'])
+    if 'time_unit' in cond:
+        d = {'年': 'year', '月': 'month', '日': 'date', '時': 'hour'}
+        return d[memo[cond.replace(' ', '')]]
+    c = 1
+    for unit in ['hour', 'day', 'month', 'year']:
+        if unit in cond:
+            return str(c)
+        c *= 100
+
+    return cond.replace(' ', '')
+
+
+def generate_condition(time_infos, cond, memo):
+    entail_conds = cond[0].split(',')
+    contradict_conds = cond[1].split(',')
+    formula = []
+    for conds in [entail_conds, contradict_conds]:
+        formulas = []
+        for cond in conds:
+            formulas.append(substitute_time(cond, time_infos, memo))
+        formula.append(' and '.join(formulas))
+
+    return formula[0], formula[1]
+
+
+def sum_time(time_info):
+    return time_info['hour'] + 10**2 * time_info['date'] + 10**4 * time_info['month'] + 10**6 * time_info['year']
+
+
+def extract_time(time_str, element):
+    time_info = {}
+    time_info['start'] = {}
+    time_info['end'] = {}
+    time_info['max_unit'] = ''
+    time_info['min_unit'] = ''
+    time_info['str'] = element
+    for unit in ['year', 'month', 'date', 'day', 'hour']:
+        time_info['start'][unit] = 0
+        time_info['end'][unit] = 0
+
+    if 'tp' in element:
+        patterns = ['(\\d+)時', '(.)曜', '(\\d+)日', '(\\d+)月', '(\\d+)年']
+        time_info['type'] = 'tp'
+    elif 'interval' in element:
+        patterns = ['(\\d+)時', '(\\d+)日', '(\\d+)ヶ月', '(\\d+)年']
+        time_info['type'] = 'interval'
+    jp2en = {'年': 'year', '月': 'month', '日': 'day', '時': 'hour'}
+
+    for pattern in patterns:
+        match = re.search(pattern, time_str)
+        if match:
+            time_info['start'][jp2en[pattern[-1]]] = int(match.groups()[0])
+            time_info['max_unit'] = pattern[-1]
+            if time_info['min_unit'] == '':
+                time_info['min_unit'] = jp2en[pattern[-1]]
+
+    if 'tp' in element:
+        if time_info['min_unit'] == 'year':
+            for key in time_info['start'].keys():
+                time_info['end'][key] = time_info['start'][key]
+            time_info['end']['year'] += 1
+        elif time_info['min_unit'] == 'month':
+            for key in time_info['start'].keys():
+                time_info['end'][key] = time_info['start'][key]
+            time_info['end']['month'] += 1
+            if time_info['end']['month'] == 13:
+                time_info['end']['month'] = 1
+                time_info['end']['year'] += 1
+        elif time_info['min_unit'] == 'day':
+            default_values = [2020, 1, 1]
+            values = [time_info['start'][key] if time_info['start'][key] else default_values[i]
+                      for i, key in enumerate(['year', 'month', 'day'])]
+            dt = datetime.date(values[0], values[1], values[2])
+            td = datetime.timedelta(1)
+            dt = dt + td
+            time_info['end']['year'] = dt.year if time_info['start']['year'] else 0
+            time_info['end']['month'] = dt.month if time_info['start']['month'] else 0
+            time_info['end']['day'] = dt.day
+            time_info['end']['hour'] = time_info['start']['hour']
+        elif time_info['min_unit'] == 'hour':
+            for key in time_info['start'].keys():
+                time_info['end'][key] = time_info['start'][key]
+        time_info['end']['nt'] = sum_time(time_info['end'])
+    time_info['start']['nt'] = sum_time(time_info['start'])
+
+    return time_info
+
+
+def generate_ans(memo, cond):
+    time_infos = {}
+    for e in memo:
+        if 'tp' in e:
+            time_str = memo[e]
+            time_info = extract_time(time_str, e)
+            time_infos[e] = time_info
+        elif 'interval' in e:
+            time_str = memo[e]
+            time_info = extract_time(time_str, e)
+            time_infos[e] = time_info
+    entail_cond, contradict_cond = generate_condition(time_infos, cond, memo)
+
+    if eval(entail_cond):
+        return "entailment"
+    elif eval(contradict_cond):
+        return "contradiction"
+    else:
+        return "neutral"
+
+
+def random_date(start, end):
+    stime = time.mktime(time.strptime(start, "%Y,%m,%d,%H"))
+    etime = time.mktime(time.strptime(end, "%Y,%m,%d,%H"))
+    ptime = stime + random.random() * (etime - stime)
+    return time.strftime("%Y,%m,%d,%H", time.localtime(ptime))
+
+
+def assign_time(element, tp_format, interval_format):
+    time = random_date("2000,1,1,0", "2021,1,1,0")
+    year, month, day, hour = [e.lstrip('0') for e in time.split(",")]
+    if hour == '':
+        hour = '0'
+    interval = str(random.choice(range(1, 10)))
+    if 'tp' in element:
+        return tp_format.replace('y', year).replace('m', month).replace('d', day).replace('h', hour)
+    if 'interval' in element:
+        return interval_format.replace('i', interval)
+
+
 # 格フレームを用いた文生成
-def generate_sentence_with_cf(template):
+def generate_sentence_with_cf(template, tp_format, interval_format):
     memo = {}
-    (prem, hyp) = template
+    (prem, hyp) = template[:2]
 
     prems = re.split("(?<=。)", prem)[:-1]
     prems_elements = [prem.split(' ') for prem in prems]
@@ -381,39 +525,60 @@ def generate_sentence_with_cf(template):
                 else:
                     new_element = kotodama.transformVerb(verbs[ind], form_specifies[ind])
                 new_element += suffix
+            elif 'tp' in element or 'interval' in element:
+                new_element = assign_time(element, tp_format, interval_format)
+                memo[element] = new_element
             elif '[' in element:
                 ind = int(element[element.find(':') + 1:element.find(']')]) - 1
                 new_element = case_list[ind][element[element.find('[') + 1:element.find(':')]]
                 memo[element[:element.find('[')]] = new_element
             else:
-                new_element = assign_word(element, ["agent", "np", "vp", "place"])
+                new_element = assign_word(element, ["agent", "np", "vp", "place", "tp", "interval"])
                 memo[element] = new_element
             sentences[i][j] = new_element
 
-    return [''.join(sentence) for sentence in sentences]
+    answer = generate_ans(memo, template[2:-1])
+
+    return [''.join(sentence) for sentence in sentences], answer
 
 
 # 格フレームを用いたデータ生成
 def generate_dataset_with_cf(out_file, perplexity_check):
     texts = []
+    time_unit_list = ['year', 'month', 'day', 'hour']
+    tu2intervalformat = {"year": "i年間", "month": "iヶ月間", "day": "i日間", "hour": "i時間"}
+    tp_format_list = {"i時間": ["y年m月d日h時", "m月d日h時", "d日h時", "h時"],
+                      "i日間": ["y年m月d日", "m月d日", "d日"],
+                      "iヶ月間": ["y年m月", "m月"],
+                      "i年間": ["y年"]}
+    template_num = 1
     for template in tqdm(templates):
-        # 1つのテンプレートあたりいくつのインスタンスを生成するか
-        for _ in range(10):
-            while True:
-                text = generate_sentence_with_cf(template)
-                max_perplexity = 0
-                if perplexity_check:
-                    for t in text:
-                        max_perplexity = max(max_perplexity, compute_perplexity(t))
-                if max_perplexity < 100:
-                    break
-                random.seed(max_perplexity)
-            texts.append([''.join(text[:-1]), text[-1]])
+        for time_unit in time_unit_list:
+            if time_unit in template[4].split(','):
+                continue
+            interval_format = tu2intervalformat[time_unit]
+            for tp_format in tp_format_list[interval_format]:
+                # 1つのテンプレートあたりいくつのインスタンスを生成するか
+                for _ in range(10):
+                    while True:
+                        text, ans = generate_sentence_with_cf(template, tp_format, interval_format)
+                        max_perplexity = 0
+                        if perplexity_check:
+                            for t in text:
+                                max_perplexity = max(max_perplexity, compute_perplexity(t))
+                        if max_perplexity < 100:
+                            break
+                        random.seed(max_perplexity)
+                    texts.append([''.join(text[:-1]), text[-1], ans,
+                                 re.sub(r"[a-zA-Z]", "", tp_format), str(template_num)])
+        template_num += 1
 
     with open(out_file, 'w') as outfile:
-        outfile.write('premise\thypothesis\n')
+        outfile.write('num\tpremise\thypothesis\tgold_label\ttemplate_num\ttp_format\n')
+        idx = 1
         for text in texts:
-            outfile.write(f'{text[0]}\t{text[1]}\n')
+            outfile.write(f'{str(idx)}\t{text[0]}\t{text[1]}\t{text[2]}\t{text[4]}\t{text[3]}\n')
+            idx += 1
 
 
 if __name__ == '__main__':
@@ -422,7 +587,7 @@ if __name__ == '__main__':
     janome_tokenizer = Tokenizer()
     kotodama.setSegmentationEngine(kotodama.SegmentationEngine.JANOME, janome_tokenizer)
     kotodama.disableError(Juman())
-    with open("./external_data/kyoto-univ-web-cf-2.0/cf_dict.pickle", "rb") as f:
+    with open("./external_data/kyoto-univ-web-cf-2.0/cf_dict_verb_super_extend.pickle", "rb") as f:
         cf_dict = pickle.load(f)
     cf_keys = list(cf_dict.keys())
     cf_keys = [set(key.split(',')) for key in cf_keys]
@@ -488,4 +653,4 @@ if __name__ == '__main__':
             # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
             # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
 
-    generate_dataset_with_cf('dataset/cf/dataset_with_cf_agent', perplexity_check)
+    generate_dataset_with_cf('dataset/cf/dataset_with_cf_vsx_agent_with_ans', perplexity_check)

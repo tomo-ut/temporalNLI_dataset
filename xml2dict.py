@@ -3,7 +3,7 @@ from collections import defaultdict
 import pickle
 
 
-for filename in ["", "_30", "_50"]:
+for filename in ["", "_30", "_50", "_verb_extend", "_verb_super_extend", "_verb_hyper_extend"]:
     tree = ET.parse('./external_data/kyoto-univ-web-cf-2.0/extract_cf' + filename + '.xml')
     cf_dict = defaultdict(dict)
     root = tree.getroot()
