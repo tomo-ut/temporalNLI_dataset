@@ -557,7 +557,11 @@ def generate_dataset_with_cf(out_file, perplexity_check):
             if time_unit in template[4].split(','):
                 continue
             interval_format = tu2intervalformat[time_unit]
+            idx = 0
             for tp_format in tp_format_list[interval_format]:
+                idx += 1
+                if 'tp' not in template[0] + template[1] and idx > 1:
+                    continue
                 # 1つのテンプレートあたりいくつのインスタンスを生成するか
                 for _ in range(10):
                     while True:
@@ -569,15 +573,20 @@ def generate_dataset_with_cf(out_file, perplexity_check):
                         if max_perplexity < 100:
                             break
                         random.seed(max_perplexity)
-                    texts.append([''.join(text[:-1]), text[-1], ans,
-                                 re.sub(r"[a-zA-Z]", "", tp_format), str(template_num)])
+                    if 'tp' in template[0] + template[1]:
+                        time_format = re.sub(r"[a-zA-Z]", "", tp_format)
+                    elif 'interval' in template[0] + template[1]:
+                        time_format = interval_format[-2:]
+                    else:
+                        time_format = "None"
+                    texts.append([''.join(text[:-1]), text[-1], ans, str(template_num), time_format])
         template_num += 1
 
     with open(out_file, 'w') as outfile:
-        outfile.write('num\tpremise\thypothesis\tgold_label\ttemplate_num\ttp_format\n')
+        outfile.write('num\tpremise\thypothesis\tgold_label\ttemplate_num\ttime_format\n')
         idx = 1
         for text in texts:
-            outfile.write(f'{str(idx)}\t{text[0]}\t{text[1]}\t{text[2]}\t{text[4]}\t{text[3]}\n')
+            outfile.write(f'{str(idx)}\t{text[0]}\t{text[1]}\t{text[2]}\t{text[3]}\t{text[4]}\n')
             idx += 1
 
 
