@@ -334,11 +334,11 @@ def substitute_time(cond, time_infos, memo):
         if 'end' in cond:
             return str(time_infos[cond.replace(' ', '').replace('.end', '')]['end']['nt'])
         if 'min_unit' in cond:
-            return str(time_infos[cond.replace(' ', '').replace('.min_unit', '')]['min_unit'])
+            return "'" + str(time_infos[cond.replace(' ', '').replace('.min_unit', '')]['min_unit']) + "'"
     if 'interval' in cond:
         return str(time_infos[cond.replace(' ', '')]['start']['nt'])
     if 'time_unit' in cond:
-        d = {'年': 'year', '月': 'month', '日': 'day', '時': 'hour'}
+        d = {'年': "'year'", '月': "'month'", '日': "'day'", '時': "'hour'"}
         return d[memo[cond.replace(' ', '')]]
     c = 1
     for unit in ['hour', 'day', 'month', 'year']:
