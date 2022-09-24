@@ -1,0 +1,11 @@
+{
+    'train_data_name': 'train.tsv',
+    'test_data_name': 'test.tsv',
+    'model_name': 'tf_model_roberta.h5',
+    'config_name': 'config_roberta.json',
+    'train_test_split': False,
+    'seed': 42,
+    'test_size': 0.1,
+    'pred_detail': 'results/pred_detail_roberta.txt',
+    'lm': 'roberta'
+}

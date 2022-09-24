@@ -415,6 +415,10 @@ def extract_time(time_str, element):
             time_info['end']['year'] = dt.year if time_info['start']['year'] else 0
             time_info['end']['month'] = dt.month if time_info['start']['month'] else 0
             time_info['end']['day'] = dt.day
+            if dt.month == 1 and dt.day == 1 and not time_info['end']['year']:
+                time_info['end']['year'] = 1
+            elif dt.day == 1 and not time_info['end']['month']:
+                time_info['end']['month'] = 1
             time_info['end']['hour'] = time_info['start']['hour']
         elif time_info['min_unit'] == 'hour':
             for key in time_info['start'].keys():
@@ -543,7 +547,7 @@ def generate_sentence_with_cf(template, tp_format, interval_format):
 
 
 # 格フレームを用いたデータ生成
-def generate_dataset_with_cf(out_file, perplexity_check):
+def generate_dataset_with_cf(out_file, perplexity_check, data_num):
     texts = []
     time_unit_list = ['year', 'month', 'day', 'hour']
     tu2intervalformat = {"year": "i年間", "month": "iヶ月間", "day": "i日間", "hour": "i時間"}
@@ -563,7 +567,7 @@ def generate_dataset_with_cf(out_file, perplexity_check):
                 if 'tp' not in template[0] + template[1] and idx > 1:
                     continue
                 # 1つのテンプレートあたりいくつのインスタンスを生成するか
-                for _ in range(10):
+                for _ in range(data_num):
                     while True:
                         text, ans = generate_sentence_with_cf(template, tp_format, interval_format)
                         max_perplexity = 0
@@ -662,4 +666,5 @@ if __name__ == '__main__':
             # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
             # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
 
-    generate_dataset_with_cf('dataset/cf/dataset_with_cf_vsx_agent_with_ans', perplexity_check)
+    generate_dataset_with_cf('dataset/train.tsv', perplexity_check, 80)
+    generate_dataset_with_cf('dataset/test.tsv', perplexity_check, 20)
