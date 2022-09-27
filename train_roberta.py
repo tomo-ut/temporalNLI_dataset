@@ -1,267 +1,277 @@
-import evaluate
-from tqdm.auto import tqdm
-from transformers import get_scheduler
-from torch.optim import AdamW
-from torch.utils.data import DataLoader
-from ast import literal_eval
-from tensorflow.keras.callbacks import EarlyStopping
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-# from transformers import RobertaConfig, TFRobertaForSequenceClassification, RobertaTokenizer
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoConfig
-from pyknp import Juman
-import torch
-import tensorflow as tf
-import numpy as np
-import json
-import pandas as pd
+# coding=utf-8
+# Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
+# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+""" Finetuning the library models for sequence classification on HANS."""
+
+import logging
 import os
-from tqdm import tqdm
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+
+import numpy as np
+import torch
+
+import transformers
+from transformers import (
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    HfArgumentParser,
+    Trainer,
+    TrainingArguments,
+    default_data_collator,
+    set_seed,
+)
+from transformers.trainer_utils import is_main_process
+from train_roberta_util import HansDataset, InputFeatures, hans_processors, hans_tasks_num_labels
+from sklearn.metrics import classification_report
 
 
-class Vocab:
-    # 正解ラベルの設定（今回はcontradiction, entailment, neutralの３値を設定）
-    def __init__(self):
-        self.token_index = {label: i for i, label in enumerate(["contradiction", "entailment", "neutral"])}
-        self.index_token = {v: k for k, v in self.token_index.items()}
-
-    def encode(self, labels):
-        label_ids = [self.token_index.get(label) for label in labels]
-        return label_ids
-
-    def decode(self, label_ids):
-        labels = [self.index_token.get(label_id) for label_id in label_ids]
-        return labels
-
-    @property
-    def size(self):
-        return len(self.token_index)
-
-    def save(self, file_path):
-        with open(file_path, 'w') as f:
-            config = {
-                'token_index': self.token_index,
-                'index_token': self.index_token
-            }
-            f.write(json.dumps(config))
-
-    @classmethod
-    def load(cls, file_path):
-        with open(file_path) as f:
-            config = json.load(f)
-            vocab = cls()
-            vocab.token_index = config.token_index
-            vocab.index_token = config.index_token
-        return vocab
+logger = logging.getLogger(__name__)
 
 
-def convert_examples_to_features(x, y, vocab, max_seq_length, tokenizer):
-    features = {
-        'input_ids': [],
-        'attention_mask': [],
-        'token_type_ids': [],
-        'label_ids': np.asarray(vocab.encode(y))
-    }
-    for pairs in x:
-        tokens = [tokenizer.cls_token]
-        token_type_ids = []
-        for i, sent in enumerate(pairs):
-            word_tokens = tokenizer.tokenize(sent)
-            tokens.extend(word_tokens)
-            tokens += [tokenizer.sep_token]
-            len_sent = len(word_tokens) + 1
-            token_type_ids += [i] * len_sent
+@dataclass
+class ModelArguments:
+    """
+    Arguments pertaining to which model/config/tokenizer we are going to fine-tune from.
+    """
 
-        input_ids = tokenizer.convert_tokens_to_ids(tokens)
-        attention_mask = [1] * len(input_ids)
-
-        features['input_ids'].append(input_ids)
-        features['attention_mask'].append(attention_mask)
-        features['token_type_ids'].append(token_type_ids)
-
-    for name in ['input_ids', 'attention_mask', 'token_type_ids']:
-        features[name] = pad_sequences(features[name], padding='post', maxlen=max_seq_length)
-
-    x = [features['input_ids'], features['attention_mask'], features['token_type_ids']]
-    y = features['label_ids']
-    return x, y
+    model_name_or_path: str = field(
+        metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
+    )
+    config_name: Optional[str] = field(
+        default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
+    )
+    tokenizer_name: Optional[str] = field(
+        default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
+    )
+    cache_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
+    )
 
 
-def build_model(pretrained_model_name_or_path, num_labels):
+@dataclass
+class DataTrainingArguments:
+    """
+    Arguments pertaining to what data we are going to input our model for training and eval.
+    """
+
+    task_name: str = field(
+        metadata={"help": "The name of the task to train selected in the list: " + ", ".join(hans_processors.keys())}
+    )
+    data_dir: str = field(
+        metadata={"help": "The input data dir. Should contain the .tsv files (or other data files) for the task."}
+    )
+    train_data_name: str = field(
+        metadata={"help": "The name of the file used as the train dataset"}
+    )
+    eval_data_name: str = field(
+        metadata={"help": "The name of the file used as the eval dataset"}
+    )
+    result_file_name: str = field(
+        metadata={"help": "The name of the output file"}
+    )
+    max_seq_length: int = field(
+        default=128,
+        metadata={
+            "help": (
+                "The maximum total input sequence length after tokenization. Sequences longer "
+                "than this will be truncated, sequences shorter will be padded."
+            )
+        },
+    )
+    overwrite_cache: bool = field(
+        default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
+    )
+
+
+def hans_data_collator(features: List[InputFeatures]) -> Dict[str, torch.Tensor]:
+    """
+    Data collator that removes the "pairID" key if present.
+    """
+    batch = default_data_collator(features)
+    _ = batch.pop("pairID", None)
+    return batch
+
+
+def main():
+    # See all possible arguments in src/transformers/training_args.py
+    # or by passing the --help flag to this script.
+    # We now keep distinct sets of args, for a cleaner separation of concerns.
+
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
+    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+
+    if (
+        os.path.exists(training_args.output_dir)
+        and os.listdir(training_args.output_dir)
+        and training_args.do_train
+        and not training_args.overwrite_output_dir
+    ):
+        raise ValueError(
+            f"Output directory ({training_args.output_dir}) already exists and is not empty. Use"
+            " --overwrite_output_dir to overcome."
+        )
+
+    # Setup logging
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=logging.INFO if training_args.local_rank in [-1, 0] else logging.WARN,
+    )
+    logger.warning(
+        "Process rank: %s, device: %s, n_gpu: %s, distributed training: %s, 16-bits training: %s",
+        training_args.local_rank,
+        training_args.device,
+        training_args.n_gpu,
+        bool(training_args.local_rank != -1),
+        training_args.fp16,
+    )
+    # Set the verbosity to info of the Transformers logger (on main process only):
+    if is_main_process(training_args.local_rank):
+        transformers.utils.logging.set_verbosity_info()
+        transformers.utils.logging.enable_default_handler()
+        transformers.utils.logging.enable_explicit_format()
+    logger.info("Training/evaluation parameters %s", training_args)
+
+    # Set seed
+    set_seed(training_args.seed)
+
+    try:
+        num_labels = hans_tasks_num_labels[data_args.task_name]
+    except KeyError:
+        raise ValueError("Task not found: %s" % (data_args.task_name))
+
+    # Load pretrained model and tokenizer
+    #
+    # Distributed training:
+    # The .from_pretrained methods guarantee that only one local process can concurrently
+    # download model & vocab.
+
     config = AutoConfig.from_pretrained(
-        pretrained_model_name_or_path,
-        num_labels=num_labels
+        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+        num_labels=num_labels,
+        finetuning_task=data_args.task_name,
+        cache_dir=model_args.cache_dir,
+    )
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+        cache_dir=model_args.cache_dir,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
-        pretrained_model_name_or_path,
-        config=config
+        model_args.model_name_or_path,
+        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        config=config,
+        cache_dir=model_args.cache_dir,
     )
-    return model
+
+    # Get datasets
+    train_dataset = (
+        HansDataset(
+            data_dir=data_args.data_dir,
+            tokenizer=tokenizer,
+            task=data_args.task_name,
+            train_data_name=data_args.train_data_name,
+            max_seq_length=data_args.max_seq_length,
+            overwrite_cache=data_args.overwrite_cache,
+        )
+        if training_args.do_train
+        else None
+    )
+    eval_dataset = (
+        HansDataset(
+            data_dir=data_args.data_dir,
+            tokenizer=tokenizer,
+            task=data_args.task_name,
+            eval_data_name=data_args.eval_data_name,
+            max_seq_length=data_args.max_seq_length,
+            overwrite_cache=data_args.overwrite_cache,
+            evaluate=True,
+        )
+        if training_args.do_eval
+        else None
+    )
+
+    # Initialize our Trainer
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+        data_collator=hans_data_collator,
+    )
+
+    # Training
+    if training_args.do_train:
+        trainer.train(
+            model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None
+        )
+        trainer.save_model()
+        # For convenience, we also re-save the tokenizer to the same directory,
+        # so that you can share your model easily on huggingface.co/models =)
+        if trainer.is_world_process_zero():
+            tokenizer.save_pretrained(training_args.output_dir)
+
+    # Evaluation
+    if training_args.do_eval:
+        logger.info("*** Evaluate ***")
+
+        output = trainer.predict(eval_dataset)
+        preds = output.predictions
+        preds = np.argmax(preds, axis=1)
+
+        pair_ids = [ex.pairID for ex in eval_dataset]
+        output_eval_file = os.path.join(training_args.output_dir, data_args.result_file_name)
+        label_list = eval_dataset.get_labels()
+        y_true = []
+        y_pred = []
+        if trainer.is_world_process_zero():
+            with open(output_eval_file, "w") as writer:
+                writer.write("pairID,pred_label,gold_label\n")
+                for i, (pid, pred) in enumerate(zip(pair_ids, preds)):
+                    gold_label = label_list[eval_dataset.features[i].label]
+                    pred_label = label_list[int(pred)]
+                    y_true.append(gold_label)
+                    y_pred.append(pred_label)
+                    writer.write("\t".join(["ex" + str(pid), pred_label,
+                                 gold_label, str(pred_label == gold_label)]) + "\n")
+
+                for k, v in output.metrics.items():
+                    writer.write(str(k) + "\t" + str(v) + "\n")
+        classify_result = classification_report(y_true, y_pred, digits=4, output_dict=True)
+
+        with open('results/result.txt', 'a') as outfile:
+            ind = ['precision', 'recall', 'f1-score', 'support']
+            result1 = ['', 'roberta', '', 'train_wakati.tsv', 0, 'test_wakati.tsv', 42]
+            result2 = [classify_result['accuracy'], classify_result['macro avg']['support']]
+            result3 = [classify_result['macro avg'][name]for name in ind[:3]]
+            result4 = [classify_result['weighted avg'][name]for name in ind[:3]]
+            result5 = [classify_result['entailment'][name]for name in ind]
+            result6 = [classify_result['contradiction'][name]for name in ind]
+            result7 = [classify_result['neutral'][name]for name in ind]
+            result = result1 + result2 + result3 + result4 + result5 + result6 + result7
+            result = [str(r) for r in result]
+            r_str = "\t".join(result)
+            outfile.write(f'{r_str}\n')
 
 
-def evaluate(model):
-    metric = evaluate.load("accuracy")
-    model.eval()
-    for batch in eval_dataloader:
-        batch = {k: v.to(device) for k, v in batch.items()}
-        with torch.no_grad():
-            outputs = model(**batch)
-
-        logits = outputs.logits
-        predictions = torch.argmax(logits, dim=-1)
-        metric.add_batch(predictions=predictions, references=batch["labels"])
-
-    metric.compute()
-    with open(pred_detail, 'w') as outfile:
-        outfile.write(f'{hypr_dict}\n')
-        outfile.write('premise\thypothesis\ttrue\tpred\tc/w\n')
-        for i in range(len(x_test)):
-            c_w = (y_true[i] == y_pred[i])
-            outfile.write(f'{x_test[i][0]}\t{x_test[i][1]}\t{y_true[i]}\t{y_pred[i]}\t{c_w}\n')
-            if not c_w:
-                false_list.append(f'{x_test[i][0]}\t{x_test[i][1]}\t{y_true[i]}\t{y_pred[i]}\t{c_w}\n')
-    with open(pred_detail.replace('.txt', '') + '_false.txt', 'w') as outfile:
-        outfile.write(f'{hypr_dict}\n')
-        outfile.write('premise\thypothesis\ttrue\tpred\tc/w\n')
-        for false in false_list:
-            outfile.write(false)
-    return classification_report(y_true, y_pred, digits=4, output_dict=True)
+def _mp_fn(index):
+    # For xla_spawn (TPUs)
+    main()
 
 
-with open('./hyper_parameter.txt', 'r') as infile:
-    hypr_dict = literal_eval(infile.read())
-
-
-# ハイパーパラメータの設定
-batch_size = 10
-epochs = 50
-maxlen = 250
-model_path = 'models/'
-train_data_name = hypr_dict['train_data_name']
-test_data_name = hypr_dict['test_data_name']
-test_size = hypr_dict['test_size']
-seed = hypr_dict['seed']
-model_name = hypr_dict['model_name']
-config_name = hypr_dict['config_name']
-pred_detail = hypr_dict['pred_detail']
-
-# トークナイザ
-target_vocab = Vocab()
-pretrained_model_name_or_path = 'nlp-waseda/roberta-large-japanese'
-tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path)
-
-# モデルの構築
-model = build_model(pretrained_model_name_or_path, target_vocab.size)
-
-# 訓練データ作成
-df = pd.read_csv("dataset/" + train_data_name, sep="\t")
-df_test = pd.read_csv("dataset/" + test_data_name, sep="\t")
-premises = list(df['premise'])
-hypotheses = list(df['hypothesis'])
-x = [(premise, hypothesis) for (premise, hypothesis) in zip(premises, hypotheses)]
-y = list(df['gold_label'])
-
-# 全データをファインチューニングに使う場合
-if hypr_dict['train_test_split']:
-    x_train, x_test_t, y_train, y_test_t = train_test_split(x, y, test_size=test_size, random_state=seed)
-else:
-    x_train = x
-    y_train = y
-
-# テストデータ作成
-if test_data_name == train_data_name:
-    x_test = x_test_t
-    y_test = y_test_t
-else:
-    premises_test = list(df_test['premise'])
-    hypotheses_test = list(df_test['hypothesis'])
-    x_test = [(premise, hypothesis) for (premise, hypothesis) in zip(premises_test, hypotheses_test)]
-    y_test = list(df_test['gold_label'])
-
-juman = Juman(jumanpp=True)
-# for i, (premise, hypothesis) in tqdm(enumerate(x_train)):
-#     x_train[i] = (' '.join([mrph.midasi for mrph in juman.analysis(premise)]),
-#                   ' '.join([mrph.midasi for mrph in juman.analysis(hypothesis)]))
-x_train = [(' '.join([mrph.midasi for mrph in juman.analysis(premise)]),
-            ' '.join([mrph.midasi for mrph in juman.analysis(hypothesis)]))
-           for (premise, hypothesis) in x_train]
-x_test = [(' '.join([mrph.midasi for mrph in juman.analysis(premise)]),
-           ' '.join([mrph.midasi for mrph in juman.analysis(hypothesis)]))
-          for (premise, hypothesis) in x_test]
-
-
-train_dataloader = DataLoader(x_train, shuffle=True, batch_size=8)
-eval_dataloader = DataLoader(x_test, batch_size=8)
-
-optimizer = AdamW(model.parameters(), lr=5e-5)
-
-num_epochs = 5
-num_training_steps = num_epochs * len(train_dataloader)
-lr_scheduler = get_scheduler(
-    name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps
-)
-
-device = torch.device("mps")
-model.to(device)
-
-
-progress_bar = tqdm(range(num_training_steps))
-
-model.train()
-for epoch in range(num_epochs):
-    for batch in train_dataloader:
-        batch = {k: v.to(device) for k, v in batch.items()}
-        outputs = model(**batch)
-        loss = outputs.loss
-        loss.backward()
-
-        optimizer.step()
-        lr_scheduler.step()
-        optimizer.zero_grad()
-        progress_bar.update(1)
-
-features_train, labels_train = convert_examples_to_features(
-    x_train,
-    y_train,
-    target_vocab,
-    max_seq_length=maxlen,
-    tokenizer=tokenizer
-)
-
-# モデルのファインチューニング
-model.fit(x=features_train,
-          y=labels_train,
-          batch_size=batch_size,
-          epochs=epochs,
-          validation_split=0.1,
-          callbacks=callbacks)
-model.save_pretrained(model_path)
-
-os.rename('models/pytorch_model.bin', 'models/' + model_name)
-os.rename('models/pytorch_model.json', 'models/' + config_name)
-
-# モデルの読み込み（モデルがある場合に使用）
-config = AutoConfig.from_json_file('models/' + config_name)
-model = AutoModelForSequenceClassification.from_pretrained('models/' + model_name, config=config)
-
-# 任意のデータでテスト
-features_test, labels_test = convert_examples_to_features(
-    x_test, y_test, target_vocab, max_seq_length=maxlen, tokenizer=tokenizer)
-
-# 混同行列の作成, ラベルの予測
-classify_result = evaluate(model, target_vocab, features_test, labels_test)
-
-with open('results/result.txt', 'a') as outfile:
-    ind = ['precision', 'recall', 'f1-score', 'support']
-    result1 = ['', model_name, config_name, train_data_name, 1 - test_size, test_data_name, seed]
-    result2 = [classify_result['accuracy'], classify_result['macro avg']['support']]
-    result3 = [classify_result['macro avg'][name]for name in ind[:3]]
-    result4 = [classify_result['weighted avg'][name]for name in ind[:3]]
-    result5 = [classify_result['entailment'][name]for name in ind]
-    result6 = [classify_result['contradiction'][name]for name in ind]
-    result7 = [classify_result['neutral'][name]for name in ind]
-    result = result1 + result2 + result3 + result4 + result5 + result6 + result7
-    result = [str(r) for r in result]
-    r_str = "\t".join(result)
-    outfile.write(f'{r_str}\n')
+if __name__ == "__main__":
+    main()
