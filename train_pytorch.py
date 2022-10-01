@@ -35,7 +35,7 @@ from transformers import (
     set_seed,
 )
 from transformers.trainer_utils import is_main_process
-from train_roberta_util import HansDataset, InputFeatures, hans_processors, hans_tasks_num_labels
+from train_pytorch_util import HansDataset, InputFeatures, hans_processors, hans_tasks_num_labels
 from sklearn.metrics import classification_report
 
 
@@ -255,7 +255,16 @@ def main():
 
         with open('results/result.txt', 'a') as outfile:
             ind = ['precision', 'recall', 'f1-score', 'support']
-            result1 = ['', 'roberta', '', 'train_wakati.tsv', 0, 'test_wakati.tsv', 42]
+            result1 = [
+                '',
+                'roberta',
+                'pytorch_model.bin',
+                '',
+                data_args.train_data_name,
+                data_args.eval_data_name,
+                42,
+                training_args.per_device_train_batch_size,
+                training_args.learning_rate]
             result2 = [classify_result['accuracy'], classify_result['macro avg']['support']]
             result3 = [classify_result['macro avg'][name]for name in ind[:3]]
             result4 = [classify_result['weighted avg'][name]for name in ind[:3]]

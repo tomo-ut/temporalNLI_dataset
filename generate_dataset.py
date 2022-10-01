@@ -26,9 +26,9 @@ def get_pos(word):
 # 動詞の活用
 def verb_transform(element, verb_list):
     if 'conj' in element:
-        return(random.choice(verb_list)[1])
+        return (random.choice(verb_list)[1])
     elif 'imp' in element:
-        return(random.choice(verb_list)[2])
+        return (random.choice(verb_list)[2])
     elif 'past' in element:
         return kotodama.transformVerb(random.choice(verb_list)[0], {"過去"})
     elif 'prog' in element:
@@ -36,15 +36,15 @@ def verb_transform(element, verb_list):
     elif 'coni' in element:
         return kotodama.transformVerb(random.choice(verb_list)[0], {"です・ます"})[:-2]
     else:
-        return(random.choice(verb_list)[0])
+        return (random.choice(verb_list)[0])
 
 
 # 全てに語を割り当てる woに指定されたものはパスされる
 def assign_word(element, without=[]):
     if 'agent' in element and "agent" not in without:
-        return(random.choice(proper_agent_list))
+        return (random.choice(proper_agent_list))
     if 'np' in element and "np" not in without:
-        return(random.choice(np_list))
+        return (random.choice(np_list))
     if "vp" not in without:
         if 'vp' in element:
             return verb_transform(element, vp_list)
@@ -54,15 +54,15 @@ def assign_word(element, without=[]):
             return verb_transform(element, vp_ta_list)
     if 'tp' in element and 'tp' not in without:
         # return(random.choice([str(random.randint(0, 23)) + '時', str(random.randint(1, 12)) + '月']))
-        return(random.choice([str(random.randint(1, 12)) + '月']))
+        return (random.choice([str(random.randint(1, 12)) + '月']))
     if 'interval' in element and 'interval' not in without:
-        return(str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間']))
+        return (str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間']))
     if 'place' in element and 'place' not in without:
-        return(random.choice(place_list))
+        return (random.choice(place_list))
     if 'time_unit' in element and 'time_unit' not in without:
-        return(random.choice(['月', '年', '日']))
+        return (random.choice(['月', '年', '日']))
 
-    return(element)
+    return (element)
 
 
 # MLMによる動詞の割り当て
@@ -132,7 +132,7 @@ def inflect_memo(memo, element, verb):
         memo[element + '_prog'] = kotodama.transformVerb(verb, {'て'})
         memo[element + '_past'] = kotodama.transformVerb(verb, {'過去'})
         memo[element + '_coni'] = kotodama.transformVerb(verb, {'です・ます'})[:-2]
-    except(ValueError):
+    except (ValueError):
         pass
     return memo
 
@@ -666,5 +666,5 @@ if __name__ == '__main__':
             # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
             # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
 
-    generate_dataset_with_cf('dataset/train.tsv', perplexity_check, 80)
-    generate_dataset_with_cf('dataset/test.tsv', perplexity_check, 20)
+    generate_dataset_with_cf('dataset/ver_1_0_1/train.tsv', perplexity_check, 80)
+    generate_dataset_with_cf('dataset/ver_1_0_1/test.tsv', perplexity_check, 20)
