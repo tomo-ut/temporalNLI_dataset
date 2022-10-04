@@ -457,7 +457,15 @@ def random_date(start, end):
     return time.strftime("%Y,%m,%d,%H", time.localtime(ptime))
 
 
-def assign_time(element, tp_format, interval_format):
+def assign_time(element, tp_format, interval_format, memo):
+    if '-' in element:
+        tp = element[:element.find('-')]
+        reftime = memo[tp]
+        if day in element:
+            diff = int(re.search('(\\d+)day', element).groups()[0])
+            daynum = int(re.search('(\\d+)日', reftime).groups()[0])
+            newday = daynum - diff
+            return reftime.replace(f'{daynum}日', f'{newday}日')
     time = random_date("2000,1,1,0", "2021,1,1,0")
     year, month, day, hour = [e.lstrip('0') for e in time.split(",")]
     if hour == '':
@@ -530,7 +538,7 @@ def generate_sentence_with_cf(template, tp_format, interval_format):
                     new_element = kotodama.transformVerb(verbs[ind], form_specifies[ind])
                 new_element += suffix
             elif 'tp' in element or 'interval' in element:
-                new_element = assign_time(element, tp_format, interval_format)
+                new_element = assign_time(element, tp_format, interval_format, memo)
                 memo[element] = new_element
             elif '[' in element:
                 ind = int(element[element.find(':') + 1:element.find(']')]) - 1
