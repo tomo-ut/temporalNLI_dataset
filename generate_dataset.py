@@ -12,6 +12,7 @@ import pickle
 import MeCab
 import datetime
 import time
+from collections import defaultdict
 
 
 # 単語の品詞を取得する
@@ -461,7 +462,7 @@ def assign_time(element, tp_format, interval_format, memo):
     if '-' in element:
         tp = element[:element.find('-')]
         reftime = memo[tp]
-        if day in element:
+        if 'day' in element:
             diff = int(re.search('(\\d+)day', element).groups()[0])
             daynum = int(re.search('(\\d+)日', reftime).groups()[0])
             newday = daynum - diff
@@ -564,6 +565,7 @@ def generate_dataset_with_cf(out_file, perplexity_check, data_num):
                       "iヶ月間": ["y年m月", "m月"],
                       "i年間": ["y年"]}
     template_num = 1
+    label_dist = defaultdict(int)
     for template in tqdm(templates):
         for time_unit in time_unit_list:
             if time_unit in template[4].split(','):
@@ -579,12 +581,16 @@ def generate_dataset_with_cf(out_file, perplexity_check, data_num):
                     while True:
                         text, ans = generate_sentence_with_cf(template, tp_format, interval_format)
                         max_perplexity = 0
+                        for t in text:
+                            zero = re.search('([^\\d]0[月,日])|(-1時)|(^0[月,日])', t)
+                            if zero:
+                                max_perplexity = 100
                         if perplexity_check:
                             for t in text:
                                 max_perplexity = max(max_perplexity, compute_perplexity(t))
                         if max_perplexity < 100:
                             break
-                        random.seed(max_perplexity)
+                        # random.seed(max_perplexity)
                     if 'tp' in template[0] + template[1]:
                         time_format = re.sub(r"[a-zA-Z]", "", tp_format)
                     elif 'interval' in template[0] + template[1]:
@@ -592,6 +598,7 @@ def generate_dataset_with_cf(out_file, perplexity_check, data_num):
                     else:
                         time_format = "None"
                     texts.append([''.join(text[:-1]), text[-1], ans, str(template_num), time_format])
+                    label_dist[ans] += 1
         template_num += 1
 
     with open(out_file, 'w') as outfile:
@@ -600,6 +607,8 @@ def generate_dataset_with_cf(out_file, perplexity_check, data_num):
         for text in texts:
             outfile.write(f'{str(idx)}\t{text[0]}\t{text[1]}\t{text[2]}\t{text[3]}\t{text[4]}\n')
             idx += 1
+    print(out_file + ':\t', end='')
+    print(label_dist)
 
 
 if __name__ == '__main__':
@@ -613,7 +622,7 @@ if __name__ == '__main__':
     cf_keys = list(cf_dict.keys())
     cf_keys = [set(key.split(',')) for key in cf_keys]
 
-    with open('./dataset/template/template.tsv', 'r') as infile:
+    with open('./dataset/template/template_ver_1.0.2.tsv', 'r') as infile:
         templates = infile.read().splitlines()[1:]
         templates = [template.split('\t') for template in templates]
 
@@ -674,5 +683,5 @@ if __name__ == '__main__':
             # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
             # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
 
-    generate_dataset_with_cf('dataset/ver_1_0_1/train.tsv', perplexity_check, 80)
-    generate_dataset_with_cf('dataset/ver_1_0_1/test.tsv', perplexity_check, 20)
+    generate_dataset_with_cf('dataset/ver_1_0_2/train.tsv', perplexity_check, 80)
+    generate_dataset_with_cf('dataset/ver_1_0_2/test.tsv', perplexity_check, 20)
