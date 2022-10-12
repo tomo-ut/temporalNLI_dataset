@@ -1,6 +1,7 @@
 import random
 from copy import deepcopy
 from transformers import pipeline, AutoTokenizer, AutoModelForMaskedLM
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from janome.tokenizer import Tokenizer
 from kotodama import kotodama
@@ -12,7 +13,9 @@ import pickle
 import MeCab
 import datetime
 import time
+import os
 from collections import defaultdict
+from wakati_dataset import wakati
 
 
 # 単語の品詞を取得する
@@ -185,7 +188,7 @@ def generate_dataset_with_verb_predict(out_file):
 
 
 # npをMLMで予測してデータを生成
-def generate_dataset_with_np_predict(out_file):
+def generate_dataset_with_np_predict(out_file, templates):
     texts = []
     for template in tqdm(templates):
         for _ in range(1):
@@ -217,7 +220,7 @@ def generate_dataset_with_np_predict(out_file):
 
 
 # MLMによる予測はなしで、perplexityベースで生成
-def generate_dataset_with_perplexity(out_file):
+def generate_dataset_with_perplexity(out_file, templates):
     texts = []
     for template in tqdm(templates):
         # 1つのテンプレートあたりいくつのインスタンスを生成するか
@@ -541,6 +544,10 @@ def generate_sentence_with_cf(template, tp_format, interval_format):
             elif 'tp' in element or 'interval' in element:
                 new_element = assign_time(element, tp_format, interval_format, memo)
                 memo[element] = new_element
+            elif element and element[0] == '[':
+                cands = element[1:-1].split(',')
+                new_element = random.choice(cands)
+                memo[element] = new_element
             elif '[' in element:
                 ind = int(element[element.find(':') + 1:element.find(']')]) - 1
                 new_element = case_list[ind][element[element.find('[') + 1:element.find(':')]]
@@ -556,7 +563,7 @@ def generate_sentence_with_cf(template, tp_format, interval_format):
 
 
 # 格フレームを用いたデータ生成
-def generate_dataset_with_cf(out_file, perplexity_check, data_num):
+def generate_dataset_with_cf(out_file, templates, perplexity_check, data_num):
     texts = []
     time_unit_list = ['year', 'month', 'day', 'hour']
     tu2intervalformat = {"year": "i年間", "month": "iヶ月間", "day": "i日間", "hour": "i時間"}
@@ -612,6 +619,7 @@ def generate_dataset_with_cf(out_file, perplexity_check, data_num):
 
 
 if __name__ == '__main__':
+    ver = 'ver_1_1'
     random.seed(0)
     tagger = MeCab.Tagger("-p")
     janome_tokenizer = Tokenizer()
@@ -622,7 +630,7 @@ if __name__ == '__main__':
     cf_keys = list(cf_dict.keys())
     cf_keys = [set(key.split(',')) for key in cf_keys]
 
-    with open('./dataset/template/template_ver_1.0.2.tsv', 'r') as infile:
+    with open(f'./dataset/template/template_{ver}.tsv', 'r') as infile:
         templates = infile.read().splitlines()[1:]
         templates = [template.split('\t') for template in templates]
 
@@ -679,9 +687,15 @@ if __name__ == '__main__':
             fill_mask = pipeline("fill-mask", model=model, tokenizer=tokenizer)
 
             # out_file = 'dataset/' + model_name_str
-            # generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict')
-            # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict')
-            # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity')
+            # generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict', templates)
+            # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict', templates)
+            # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity', templates)
 
-    generate_dataset_with_cf('dataset/ver_1_0_2/train.tsv', perplexity_check, 80)
-    generate_dataset_with_cf('dataset/ver_1_0_2/test.tsv', perplexity_check, 20)
+    templates_train, templates_test = train_test_split(templates, test_size=0.2, random_state=0, shuffle=False)
+
+    do_wakati = True
+    os.makedirs(f'./dataset/{ver}', exist_ok=True)
+    generate_dataset_with_cf(f'dataset/{ver}/train.tsv', templates_train, perplexity_check, 50)
+    generate_dataset_with_cf(f'dataset/{ver}/test.tsv', templates_test, perplexity_check, 50)
+    if do_wakati:
+        wakati(ver)
