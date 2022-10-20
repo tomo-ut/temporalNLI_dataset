@@ -1,3 +1,4 @@
+from cgi import test
 import random
 from copy import deepcopy
 from transformers import pipeline, AutoTokenizer, AutoModelForMaskedLM
@@ -691,11 +692,15 @@ if __name__ == '__main__':
             # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict', templates)
             # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity', templates)
 
-    templates_train, templates_test = train_test_split(templates, test_size=0.2, random_state=0, shuffle=False)
-
+    train_size = 0.9
+    test_size = 1 - train_size
+    split = str(train_size)[str(train_size).find('.') + 1:]
+    templates_train, templates_test = train_test_split(
+        templates, test_size=test_size, random_state=0, shuffle=False)
+    print(f"train template: {len(templates_train)}, test template: {len(templates_test)}")
     do_wakati = True
     os.makedirs(f'./dataset/{ver}', exist_ok=True)
-    generate_dataset_with_cf(f'dataset/{ver}/train.tsv', templates_train, perplexity_check, 50)
-    generate_dataset_with_cf(f'dataset/{ver}/test.tsv', templates_test, perplexity_check, 50)
+    generate_dataset_with_cf(f'dataset/{ver}/train_{split}.tsv', templates_train, perplexity_check, 50)
+    generate_dataset_with_cf(f'dataset/{ver}/test_{split}.tsv', templates_test, perplexity_check, 50)
     if do_wakati:
-        wakati(ver)
+        wakati(ver, split)
