@@ -1,4 +1,3 @@
-from cgi import test
 import random
 from copy import deepcopy
 from transformers import pipeline, AutoTokenizer, AutoModelForMaskedLM
@@ -9,6 +8,7 @@ from kotodama import kotodama
 from pyknp import Juman
 import torch
 import numpy as np
+import pandas as pd
 import re
 import pickle
 import MeCab
@@ -354,9 +354,9 @@ def substitute_time(cond, time_infos, memo):
     return cond.replace(' ', '')
 
 
-def generate_condition(time_infos, cond, memo):
-    entail_conds = cond[0].split(',')
-    contradict_conds = cond[1].split(',')
+def generate_condition(time_infos, template, memo):
+    entail_conds = template['entailment'].split(',')
+    contradict_conds = template['contradiction'].split(',')
     formula = []
     for conds in [entail_conds, contradict_conds]:
         formulas = []
@@ -434,7 +434,7 @@ def extract_time(time_str, element):
     return time_info
 
 
-def generate_ans(memo, cond):
+def generate_ans(memo, template):
     time_infos = {}
     for e in memo:
         if 'tp' in e:
@@ -445,7 +445,7 @@ def generate_ans(memo, cond):
             time_str = memo[e]
             time_info = extract_time(time_str, e)
             time_infos[e] = time_info
-    entail_cond, contradict_cond = generate_condition(time_infos, cond, memo)
+    entail_cond, contradict_cond = generate_condition(time_infos, template, memo)
 
     if eval(entail_cond):
         return "entailment"
@@ -485,7 +485,8 @@ def assign_time(element, tp_format, interval_format, memo):
 # 格フレームを用いた文生成
 def generate_sentence_with_cf(template, tp_format, interval_format):
     memo = {}
-    (prem, hyp) = template[:2]
+    prem = template['premise']
+    hyp = template['hypothesis']
 
     prems = re.split("(?<=。)", prem)[:-1]
     prems_elements = [prem.split(' ') for prem in prems]
@@ -558,7 +559,7 @@ def generate_sentence_with_cf(template, tp_format, interval_format):
                 memo[element] = new_element
             sentences[i][j] = new_element
 
-    answer = generate_ans(memo, template[2:-1])
+    answer = generate_ans(memo, template)
 
     return [''.join(sentence) for sentence in sentences], answer
 
@@ -572,17 +573,16 @@ def generate_dataset_with_cf(out_file, templates, perplexity_check, data_num):
                       "i日間": ["y年m月d日", "m月d日", "d日"],
                       "iヶ月間": ["y年m月", "m月"],
                       "i年間": ["y年"]}
-    template_num = 1
     label_dist = defaultdict(int)
     for template in tqdm(templates):
         for time_unit in time_unit_list:
-            if time_unit in template[4].split(','):
+            if time_unit in template['ng time unit'].split(','):
                 continue
             interval_format = tu2intervalformat[time_unit]
             idx = 0
             for tp_format in tp_format_list[interval_format]:
                 idx += 1
-                if 'tp' not in template[0] + template[1] and idx > 1:
+                if 'tp' not in template['premise'] + template['hypothesis'] and idx > 1:
                     continue
                 # 1つのテンプレートあたりいくつのインスタンスを生成するか
                 for _ in range(data_num):
@@ -599,15 +599,14 @@ def generate_dataset_with_cf(out_file, templates, perplexity_check, data_num):
                         if max_perplexity < 100:
                             break
                         # random.seed(max_perplexity)
-                    if 'tp' in template[0] + template[1]:
+                    if 'tp' in template['premise'] + template['hypothesis']:
                         time_format = re.sub(r"[a-zA-Z]", "", tp_format)
-                    elif 'interval' in template[0] + template[1]:
+                    elif 'interval' in template['premise'] + template['hypothesis']:
                         time_format = interval_format[-2:]
                     else:
                         time_format = "None"
-                    texts.append([''.join(text[:-1]), text[-1], ans, str(template_num), time_format])
+                    texts.append([''.join(text[:-1]), text[-1], ans, template['id'], time_format])
                     label_dist[ans] += 1
-        template_num += 1
 
     with open(out_file, 'w') as outfile:
         outfile.write('num\tpremise\thypothesis\tgold_label\ttemplate_num\ttime_format\n')
@@ -620,7 +619,7 @@ def generate_dataset_with_cf(out_file, templates, perplexity_check, data_num):
 
 
 if __name__ == '__main__':
-    ver = 'ver_1_1'
+    ver = 'ver_1_1_1'
     random.seed(0)
     tagger = MeCab.Tagger("-p")
     janome_tokenizer = Tokenizer()
@@ -631,9 +630,7 @@ if __name__ == '__main__':
     cf_keys = list(cf_dict.keys())
     cf_keys = [set(key.split(',')) for key in cf_keys]
 
-    with open(f'./dataset/template/template_{ver}.tsv', 'r') as infile:
-        templates = infile.read().splitlines()[1:]
-        templates = [template.split('\t') for template in templates]
+    templates = pd.read_csv(f'./dataset/template/template_{ver}.tsv', sep='\t').to_dict('records')
 
     with open('./vocab_list/place_list.txt', 'r') as infile:
         place_list = infile.read().splitlines()
@@ -695,8 +692,9 @@ if __name__ == '__main__':
     train_size = 0.9
     test_size = 1 - train_size
     split = str(train_size)[str(train_size).find('.') + 1:]
-    templates_train, templates_test = train_test_split(
-        templates, test_size=test_size, random_state=0, shuffle=False)
+    templates_train, templates_test = train_test_split(templates, test_size=test_size, random_state=0)
+    templates_train.sort(key=lambda x: x['id'])
+    templates_test.sort(key=lambda x: x['id'])
     print(f"train template: {len(templates_train)}, test template: {len(templates_test)}")
     do_wakati = True
     os.makedirs(f'./dataset/{ver}', exist_ok=True)
