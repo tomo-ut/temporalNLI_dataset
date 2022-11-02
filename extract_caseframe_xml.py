@@ -3,7 +3,8 @@ import xml.etree.ElementTree as ET
 tree = ET.parse('./external_data/kyoto-univ-web-cf-2.0/kyoto-univ-web-cf-2.0.xml')
 # tree = ET.parse('./external_data/kyoto-univ-web-cf-2.0/temp.xml')
 root = tree.getroot()
-threshold = 10000
+word_threshold = 300
+threshold = 1000
 sample = 10
 # with open('./external_data/kyoto-univ-web-cf-2.0/extract_temp.xml', 'w') as out:
 remove_entry = []
@@ -28,9 +29,13 @@ for entry in root:
         for argment in caseframe:
             remove_component = []
             for i, component in enumerate(argment):
-                if i >= sample:
+                if int(component.attrib["frequency"]) < word_threshold:
                     remove_component.append(component)
+                # if i >= sample:
+                #     remove_component.append(component)
             for component in remove_component:
                 argment.remove(component)
 
-tree.write('./external_data/kyoto-univ-web-cf-2.0/extract_cf.xml', encoding='utf-8')
+tree.write(
+    f'./external_data/kyoto-univ-web-cf-2.0/extract_cf_casefreq{threshold}_wordfreq{word_threshold}.xml',
+    encoding='utf-8')
