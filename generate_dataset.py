@@ -1,13 +1,9 @@
 import random
-from copy import deepcopy
-from transformers import pipeline, AutoTokenizer, AutoModelForMaskedLM
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from janome.tokenizer import Tokenizer
 from kotodama import kotodama
 from pyknp import Juman
-import torch
-import numpy as np
 import pandas as pd
 import re
 import pickle
@@ -28,248 +24,8 @@ def get_pos(word):
     return ''.join(pos)
 
 
-# 動詞の活用
-def verb_transform(element, verb_list):
-    if 'conj' in element:
-        return (random.choice(verb_list)[1])
-    elif 'imp' in element:
-        return (random.choice(verb_list)[2])
-    elif 'past' in element:
-        return kotodama.transformVerb(random.choice(verb_list)[0], {"過去"})
-    elif 'prog' in element:
-        return kotodama.transformVerb(random.choice(verb_list)[0], {"て"})
-    elif 'coni' in element:
-        return kotodama.transformVerb(random.choice(verb_list)[0], {"です・ます"})[:-2]
-    else:
-        return (random.choice(verb_list)[0])
-
-
-# 全てに語を割り当てる woに指定されたものはパスされる
-def assign_word(element, without=[]):
-    if 'agent' in element and "agent" not in without:
-        return (random.choice(proper_agent_list))
-    if 'np' in element and "np" not in without:
-        return (random.choice(np_list))
-    if "vp" not in without:
-        if 'vp' in element:
-            return verb_transform(element, vp_list)
-        if 'vp_zi' in element:
-            return verb_transform(element, vp_zi_list)
-        if 'vp_ta' in element:
-            return verb_transform(element, vp_ta_list)
-    if 'tp' in element and 'tp' not in without:
-        # return(random.choice([str(random.randint(0, 23)) + '時', str(random.randint(1, 12)) + '月']))
-        return (random.choice([str(random.randint(1, 12)) + '月']))
-    if 'interval' in element and 'interval' not in without:
-        return (str(random.randint(1, 5)) + random.choice(['時間', '日間', '年間']))
-    if 'place' in element and 'place' not in without:
-        return (random.choice(place_list))
-    if 'time_unit' in element and 'time_unit' not in without:
-        return (random.choice(['月', '年', '日']))
-
-    return (element)
-
-
-# MLMによる動詞の割り当て
-def assign_verb(elements, ind, memo):
-    c_elements = deepcopy(elements)
-    for i in range(len(elements)):
-        if i != ind and 'vp' in elements[i]:
-            if 'imp' in elements[i] or 'conj' in elements[i]:
-                c_elements[i] = 'し'
-            else:
-                c_elements[i] = 'する'
-    if model_name == bert:
-        for i, e in enumerate(c_elements):
-            if 'past' in e or 'prog' in e:
-                if 'past' in e:
-                    p = random.choices(['た', 'だ'], weights=[7, 3])
-                else:
-                    p = random.choices(['て', 'で'], weights=[7, 3])
-                c_elements[i + 1:i + 1] = p
-                elements[i + 1:i + 1] = p
-                memo[p[0]] = p[0]
-        mask_text = ''.join([tokenizer.mask_token if 'vp' in e else e for e in c_elements])
-    elif model_name == roberta:
-        sentence = ''.join([tokenizer.mask_token if 'vp' in e else e for e in c_elements])
-        mask_text = ' '.join([token.surface for token in janome_tokenizer.tokenize(sentence)]
-                             ).replace('[ MASK ]', '[MASK]')
-    result = fill_mask(mask_text)[0]
-    return result['token_str'].replace(' ', ''), result['sequence'].replace(' ', '')
-
-
-# MLMによる名詞の割り当て
-def assign_np(elements, ind):
-    c_elements = deepcopy(elements)
-    np_count = sum([1 if 'np' in e else 0 for e in elements])
-    if np_count > 1:
-        for i in range(len(elements)):
-            if i != ind and 'np' in elements[i]:
-                c_elements[i] = '太郎'
-    if model_name == bert:
-        mask_text = ''.join([tokenizer.mask_token if 'np' in e else e for e in c_elements])
-    elif model_name == roberta:
-        sentence = ''.join([tokenizer.mask_token if 'np' in e else e for e in c_elements])
-        mask_text = ' '.join([token.surface for token in janome_tokenizer.tokenize(sentence)]
-                             ).replace('[ MASK ]', '[MASK]')
-    result = fill_mask(mask_text)[0]
-
-    return result['token_str'].replace(' ', ''), result['sequence'].replace(' ', '')
-
-
-# 終止形に戻す
-def transform_end(verb, text):
-    for token in janome_tokenizer.tokenize(text):
-        if token.surface == verb:
-            if token.part_of_speech.split(',')[0] != '動詞':
-                return token.base_form + 'する'
-            return token.base_form
-    return 'error'
-
-
-# 活用形をメモ
-def inflect_memo(memo, element, verb):
-    element = re.sub('_conj|_imp|_prog|_past|_coni', '', element)
-    memo[element] = verb
-    try:
-        memo[element + '_conj'] = kotodama.transformVerb(verb, {'過去'})[:-1]
-        memo[element + '_imp'] = kotodama.transformVerb(verb, {'否定'})[:-2]
-        memo[element + '_prog'] = kotodama.transformVerb(verb, {'て'})
-        memo[element + '_past'] = kotodama.transformVerb(verb, {'過去'})
-        memo[element + '_coni'] = kotodama.transformVerb(verb, {'です・ます'})[:-2]
-    except (ValueError):
-        pass
-    return memo
-
-
-# perplexity の計算
-def compute_perplexity(sentence):
-    sentence = ' '.join([token.surface for token in janome_tokenizer.tokenize(sentence)])
-    tensor_input = tokenizer.encode(sentence, return_tensors='pt')
-    repeat_input = tensor_input.repeat(tensor_input.size(-1) - 2, 1)
-    mask = torch.ones(tensor_input.size(-1) - 1).diag(1)[:-2]
-    masked_input = repeat_input.masked_fill(mask == 1, tokenizer.mask_token_id)
-    labels = repeat_input.masked_fill(masked_input != tokenizer.mask_token_id, -100)
-    with torch.inference_mode():
-        loss = model(masked_input, labels=labels).loss
-    return np.exp(loss.item())
-
-
-# vpをMLMで予測してデータを生成
-def generate_dataset_with_verb_predict(out_file):
-    texts = []
-    for template in tqdm(templates):
-        for _ in range(1):
-            memo = {}
-            (prem, hyp) = template
-            prems = re.split("(?<=。)", prem)[:-1]
-            prems_elements = [prem.split(' ') for prem in prems]
-            hyp_elements = hyp.split(' ')
-            for elements in (prems_elements + [hyp_elements]):
-                for i, element in enumerate(elements):
-                    if element in memo:
-                        elements[i] = memo[element]
-                    elif 'vp' not in element:
-                        elements[i] = assign_word(element, ["vp"])
-                        memo[element] = elements[i]
-                for i, element in enumerate(elements):
-                    if element not in (list(memo.keys()) + list(memo.values())):
-                        elements[i], text = assign_verb(elements, i, memo)
-                        end_form = transform_end(elements[i], text)
-                        memo = inflect_memo(memo, element, end_form)
-                    elif element in memo:
-                        elements[i] = memo[element]
-
-            texts.append([''.join(sum(prems_elements, [])), ''.join(hyp_elements)])
-
-    with open(out_file, 'w') as outfile:
-        outfile.write('premise\thypothesis\n')
-        for text in texts:
-            outfile.write(f'{text[0]}\t{text[1]}\n')
-
-
-# npをMLMで予測してデータを生成
-def generate_dataset_with_np_predict(out_file, templates):
-    texts = []
-    for template in tqdm(templates):
-        for _ in range(1):
-            memo = {}
-            (prem, hyp) = template
-            prems = re.split("(?<=。)", prem)[:-1]
-            prems_elements = [prem.split(' ') for prem in prems]
-            hyp_elements = hyp.split(' ')
-            for elements in (prems_elements + [hyp_elements]):
-                for i, element in enumerate(elements):
-                    if element in memo:
-                        elements[i] = memo[element]
-                    elif 'np' not in element:
-                        elements[i] = assign_word(element, ["np"])
-                        memo[element] = elements[i]
-                for i, element in enumerate(elements):
-                    if element not in (list(memo.keys()) + list(memo.values())):
-                        elements[i], text = assign_np(elements, i)
-                        memo[element] = elements[i]
-                    elif element in memo:
-                        elements[i] = memo[element]
-
-            texts.append([''.join(sum(prems_elements, [])), ''.join(hyp_elements)])
-
-    with open(out_file, 'w') as outfile:
-        outfile.write('premise\thypothesis\n')
-        for text in texts:
-            outfile.write(f'{text[0]}\t{text[1]}\n')
-
-
-# MLMによる予測はなしで、perplexityベースで生成
-def generate_dataset_with_perplexity(out_file, templates):
-    texts = []
-    for template in tqdm(templates):
-        # 1つのテンプレートあたりいくつのインスタンスを生成するか
-        for _ in range(1):
-            memo = {}
-            (prem, hyp) = template
-            prems = re.split("(?<=。)", prem)[:-1]
-            prems_elements = [prem.split(' ') for prem in prems]
-            hyp_elements = hyp.split(' ')
-            e_index = 0
-            sentences = prems_elements + [hyp_elements]
-            while e_index < len(sentences):
-                perplexity = 100
-                counter = 0
-                while (perplexity > 50):
-                    temp_memo = deepcopy(memo)
-                    new_elements = deepcopy(sentences[e_index])
-                    for i, element in enumerate(new_elements):
-                        if element in temp_memo:
-                            new_elements[i] = temp_memo[element]
-                        else:
-                            new_elements[i] = assign_word(element)
-                            temp_memo[element] = new_elements[i]
-                    perplexity = compute_perplexity(''.join(new_elements))
-                    # print(f"{int(perplexity)}" + "\t" + ''.join(new_elements))
-                    counter += 1
-                    # いつまで経ってもperplexityが小さくならない場合、最初の文ではまっている可能性があるのでやり直し
-                    if counter >= 10:
-                        break
-                if counter >= 10:
-                    memo = {}
-                    sentences = prems_elements + [hyp_elements]
-                    e_index = 0
-                    continue
-                memo = temp_memo
-                sentences[e_index] = new_elements
-                e_index += 1
-
-            texts.append([''.join(sum(sentences[:-1], [])), ''.join(sentences[-1])])
-
-    with open(out_file, 'w') as outfile:
-        outfile.write('premise\thypothesis\n')
-        for text in texts:
-            outfile.write(f'{text[0]}\t{text[1]}\n')
-
-
 # テンプレートにあった格フレームの選択
-def choice_cf(verb):
+def choice_cf(verb, wordlist_dict, cf_dict, cf_keys):
     cases = re.match(".+?\\[(.+?):\\d+\\]", verb).groups()[0].split(',')
     origin_cases = [case for case in cases]
     cases = set([re.match("(.+?)\\d*$", case).groups()[0] for case in origin_cases])
@@ -284,17 +40,21 @@ def choice_cf(verb):
             selected_entry = random.choice(list(cf_dict[selected_case].keys()))
             split_entries = selected_entry.split('+')
             origin_verb = ''.join([split_entry[:split_entry.find('/')] for split_entry in split_entries])
-            if origin_verb in black_verb_set:
+            if origin_verb in wordlist_dict['black_verb']:
                 continue
-            if 'ノ格' not in ''.join(list(cases)):
-                for case in cases:
-                    if 'ノ格~' + case in selected_case:
-                        is_in_nokaku = True
+            if '時間' not in selected_case:
+                continue
+            # if 'ノ格' not in ''.join(list(cases)):
+            #     for case in cases:
+            #         if 'ノ格~' + case in selected_case:
+            #             is_in_nokaku = True
             if is_in_nokaku:
                 continue
             if '外の関係' in selected_case:
                 continue
-            if '+' not in selected_entry.replace('+する/する', '').replace('+れる/れる', ''):
+            # if '+' not in selected_entry.replace('+する/する', '').replace('+れる/れる', ''):
+            # 受け身 れる の出現無しパターン
+            if '+' not in selected_entry.replace('+する/する', ''):
                 break
         selected_dict = cf_dict[selected_case][selected_entry]
         new_dict = {}
@@ -308,9 +68,9 @@ def choice_cf(verb):
                 words = selected_dict[case_wo_ind][ind].split('+')
                 word = ''.join([w[:w.find('/')] for w in words])
                 pos = get_pos(word)
-                if word in word_list or word in black_vocab_set or '名詞' not in pos or '動詞' in pos:
+                if word in word_list or word in wordlist_dict['black_vocab'] or '名詞' not in pos or '動詞' in pos:
                     continue
-                elif case_wo_ind == 'ガ格' and word not in agent_list:
+                elif case_wo_ind == 'ガ格' and word not in wordlist_dict['agent']:
                     continue
                 else:
                     word_list.append(word)
@@ -483,10 +243,12 @@ def assign_time(element, tp_format, interval_format, memo):
 
 
 # 格フレームを用いた文生成
-def generate_sentence_with_cf(template, tp_format, interval_format):
+def generate_sentence_with_cf(template, wordlist_dict, cf_dict, cf_keys, tp_format, interval_format):
     memo = {}
     prem = template['premise']
     hyp = template['hypothesis']
+    limited_agent_list = wordlist_dict['agents'].copy()
+    random.shuffle(limited_agent_list)
 
     prems = re.split("(?<=。)", prem)[:-1]
     prems_elements = [prem.split(' ') for prem in prems]
@@ -499,12 +261,12 @@ def generate_sentence_with_cf(template, tp_format, interval_format):
         if "vp" in element and "[" in element:
             while True:
                 form_specify = set()
-                verb, other_case = choice_cf(element)
+                verb, other_case = choice_cf(element, wordlist_dict, cf_dict, cf_keys)
                 verb_base = verb[:verb.find('/')]
-                if "+する/する+れる/れる" in verb:
+                if "+する/する+れる/れる" in verb and get_pos(verb_base) == '名詞':
                     verb = verb_base + 'する'
                     form_specify.add("受け身")
-                elif "+する/する" in verb:
+                elif "+する/する" in verb and get_pos(verb_base) == '名詞':
                     verb = verb_base + 'する'
                 else:
                     verb = verb_base
@@ -528,7 +290,7 @@ def generate_sentence_with_cf(template, tp_format, interval_format):
             elif 'vp' in element:
                 ind = int(re.match('.*?(\\d).*?', element).groups()[0]) - 1
                 suffix = ''
-                if 'stative' in element and verbs[ind] not in stative_verb_list:
+                if 'stative' in element and verbs[ind] not in wordlist_dict['stative_verb']:
                     element += 'prog'
                     suffix = 'いる'
                     if 'past' in element:
@@ -550,12 +312,18 @@ def generate_sentence_with_cf(template, tp_format, interval_format):
                 cands = element[1:-1].split(',')
                 new_element = random.choice(cands)
                 memo[element] = new_element
+            elif 'agent' in element:
+                new_element = limited_agent_list.pop()
+                if '[' in element:
+                    memo[element[:element.find('[')]] = new_element
+                else:
+                    memo[element] = new_element
             elif '[' in element:
                 ind = int(element[element.find(':') + 1:element.find(']')]) - 1
                 new_element = case_list[ind][element[element.find('[') + 1:element.find(':')]]
                 memo[element[:element.find('[')]] = new_element
             else:
-                new_element = assign_word(element, ["agent", "np", "vp", "place", "tp", "interval"])
+                new_element = element
                 memo[element] = new_element
             sentences[i][j] = new_element
 
@@ -565,7 +333,7 @@ def generate_sentence_with_cf(template, tp_format, interval_format):
 
 
 # 格フレームを用いたデータ生成
-def generate_dataset_with_cf(out_file, templates, perplexity_check, data_num):
+def generate_dataset_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_keys, data_num):
     texts = []
     time_unit_list = ['year', 'month', 'day', 'hour']
     tu2intervalformat = {"year": "i年間", "month": "iヶ月間", "day": "i日間", "hour": "i時間"}
@@ -587,16 +355,14 @@ def generate_dataset_with_cf(out_file, templates, perplexity_check, data_num):
                 # 1つのテンプレートあたりいくつのインスタンスを生成するか
                 for _ in range(data_num):
                     while True:
-                        text, ans = generate_sentence_with_cf(template, tp_format, interval_format)
-                        max_perplexity = 0
+                        text, ans = generate_sentence_with_cf(
+                            template, wordlist_dict, cf_dict, cf_keys, tp_format, interval_format)
+                        zero_flag = False
                         for t in text:
                             zero = re.search('([^\\d]0[月,日])|(-1時)|(^0[月,日])', t)
                             if zero:
-                                max_perplexity = 100
-                        if perplexity_check:
-                            for t in text:
-                                max_perplexity = max(max_perplexity, compute_perplexity(t))
-                        if max_perplexity < 100:
+                                zero_flag = True
+                        if not zero_flag:
                             break
                         # random.seed(max_perplexity)
                     if 'tp' in template['premise'] + template['hypothesis']:
@@ -618,87 +384,100 @@ def generate_dataset_with_cf(out_file, templates, perplexity_check, data_num):
     print(label_dist)
 
 
-if __name__ == '__main__':
-    ver = 'ver_1_1_1'
-    random.seed(0)
-    tagger = MeCab.Tagger("-p")
-    janome_tokenizer = Tokenizer()
-    kotodama.setSegmentationEngine(kotodama.SegmentationEngine.JANOME, janome_tokenizer)
-    kotodama.disableError(Juman())
-    with open("./external_data/kyoto-univ-web-cf-2.0/cf_dict_verb_super_extend.pickle", "rb") as f:
+def split_dataset(templates, ver, split, seed=0, mode='random'):
+    split_str = mode + '-' + str(split)
+    if os.path.exists(f'dataset/ver_{ver}/test_{split_str}.tsv') \
+            and os.path.exists(f'dataset/ver_{ver}/test_{split_str}_wakati.tsv'):
+        return 0
+    if mode == 'random':
+        test_size = 1 - float('0.' + str(split))
+        templates_train, templates_test = train_test_split(templates, test_size=test_size, random_state=seed)
+        templates_train_idx = [template_train['id'] for template_train in templates_train]
+        templates_test_idx = [template_test['id'] for template_test in templates_test]
+        templates_train_idx.sort()
+        templates_test_idx.sort()
+    elif mode == 'custom':
+        templates_test_idx = pd.read_csv(f'dataset/split_info/{split_str}.txt', header=None).to_dict('list')[0]
+        all_ids = [template['id'] for template in templates]
+        templates_train_idx = sorted(list(set(all_ids) - set(templates_test_idx)))
+    print(f"train template: {len(templates_train_idx)}, test template: {len(templates_test_idx)}")
+    for suffix in ['', '_wakati']:
+        all_problems = pd.read_csv(f'./dataset/ver_{ver}/all{suffix}.tsv', sep='\t')
+        train_problems = all_problems.query('template_num in @templates_train_idx')
+        test_problems = all_problems.query('template_num in @templates_test_idx')
+        train_problems.to_csv(f'dataset/ver_{ver}/train_{split_str}{suffix}.tsv', sep='\t', index=False)
+        test_problems.to_csv(f'dataset/ver_{ver}/test_{split_str}{suffix}.tsv', sep='\t', index=False)
+    return 0
+
+
+def extract_test_problem(path):
+    problems = pd.read_csv(path, sep='\t').to_dict('records')
+    extracted_problems = []
+    for problem in problems:
+        pass
+    pd.DataFrame(extracted_problems).to_csv(path, sep='\t', index=False)
+
+
+def initialize(template_ver):
+    wordlist_dict = {}
+
+    with open('./vocab_list/agent_list.txt', 'r') as infile:
+        wordlist_dict['agent'] = infile.read().splitlines()
+
+    with open('./vocab_list/agents.txt', 'r') as infile:
+        wordlist_dict['agents'] = infile.read().splitlines()
+
+    with open('./vocab_list/vocab_black_list.txt', 'r') as infile:
+        wordlist_dict['black_vocab'] = set(infile.read().splitlines())
+
+    with open('./vocab_list/verb_black_list.txt', 'r') as infile:
+        wordlist_dict['black_verb'] = set(infile.read().splitlines())
+
+    with open('./vocab_list/stative_verb_list.txt', 'r') as infile:
+        wordlist_dict['stative_verb'] = infile.read().splitlines()
+
+    cf = "cf_dict_casefreq1000_wordfreq100"
+    with open(f"./external_data/kyoto-univ-web-cf-2.0/{cf}.pickle", "rb") as f:
         cf_dict = pickle.load(f)
     cf_keys = list(cf_dict.keys())
     cf_keys = [set(key.split(',')) for key in cf_keys]
 
-    templates = pd.read_csv(f'./dataset/template/template_{ver}.tsv', sep='\t').to_dict('records')
+    templates = pd.read_csv(f'./dataset/template/template_{template_ver}.tsv', sep='\t').to_dict('records')
 
-    with open('./vocab_list/place_list.txt', 'r') as infile:
-        place_list = infile.read().splitlines()
+    return templates, wordlist_dict, cf_dict, cf_keys
 
-    # with open('./vocab_list/np_list.txt', 'r') as infile:
-    with open('./vocab_list/noun_list.txt', 'r') as infile:
-        np_list = infile.read().splitlines()
 
-    with open('./vocab_list/intransive_verb_list.txt', 'r') as infile:
-        vp_zi_list = infile.read().splitlines()
-        vp_zi_list = [vp_zi.split(',') for vp_zi in vp_zi_list]
-
-    with open('./vocab_list/transive_verb_list.txt', 'r') as infile:
-        vp_ta_list = infile.read().splitlines()
-        vp_ta_list = [vp_ta.split(',') for vp_ta in vp_ta_list]
-
-    with open('./vocab_list/basic_verb_list.txt', 'r') as infile:
-        vp_list = infile.read().splitlines()
-        vp_list = [vp.split(',') for vp in vp_list]
-
-    with open('./vocab_list/common_agent_list.txt', 'r') as infile:
-        common_agent_list = infile.read().splitlines()
-
-    with open('./vocab_list/proper_agent_list.txt', 'r') as infile:
-        proper_agent_list = infile.read().splitlines()
-
-    with open('./vocab_list/agent_list.txt', 'r') as infile:
-        agent_list = infile.read().splitlines()
-
-    with open('./vocab_list/vocab_black_list.txt', 'r') as infile:
-        black_vocab_set = set(infile.read().splitlines())
-
-    with open('./vocab_list/verb_black_list.txt', 'r') as infile:
-        black_verb_set = set(infile.read().splitlines())
-
-    with open('./vocab_list/stative_verb_list.txt', 'r') as infile:
-        stative_verb_list = infile.read().splitlines()
-
-    bert = "cl-tohoku/bert-base-japanese-whole-word-masking"
-    roberta = "nlp-waseda/roberta-large-japanese"
-
-    perplexity_check = False
-    if perplexity_check:
-        # for model_name_str in ['bert', 'roberta']:
-        for model_name_str in ['roberta']:
-            if model_name_str == "roberta":
-                model_name = roberta
-            else:
-                model_name = bert
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
-            model = AutoModelForMaskedLM.from_pretrained(model_name)
-            fill_mask = pipeline("fill-mask", model=model, tokenizer=tokenizer)
-
-            # out_file = 'dataset/' + model_name_str
-            # generate_dataset_with_verb_predict(out_file + '/dataset_with_vp_predict', templates)
-            # generate_dataset_with_np_predict(out_file + '/dataset_with_np_predict', templates)
-            # generate_dataset_with_perplexity(out_file + '/dataset_with_perplexity', templates)
-
-    train_size = 0.9
-    test_size = 1 - train_size
-    split = str(train_size)[str(train_size).find('.') + 1:]
-    templates_train, templates_test = train_test_split(templates, test_size=test_size, random_state=0)
-    templates_train.sort(key=lambda x: x['id'])
-    templates_test.sort(key=lambda x: x['id'])
-    print(f"train template: {len(templates_train)}, test template: {len(templates_test)}")
+def main():
+    random.seed(0)
+    template_ver = 'ver_1_1_1'
+    ver = '1_2'
+    split_dict = {'random': [9, 8, 7], 'custom': [0, 1, 2]}
+    do_split = {'random': True, 'custom': True}
+    do_update = False
     do_wakati = True
-    os.makedirs(f'./dataset/{ver}', exist_ok=True)
-    generate_dataset_with_cf(f'dataset/{ver}/train_{split}.tsv', templates_train, perplexity_check, 50)
-    generate_dataset_with_cf(f'dataset/{ver}/test_{split}.tsv', templates_test, perplexity_check, 50)
-    if do_wakati:
-        wakati(ver, split)
+    path = f'dataset/ver_{ver}/'
+
+    os.makedirs(f'./dataset/ver_{ver}', exist_ok=True)
+    templates, wordlist_dict, cf_dict, cf_keys = initialize(template_ver)
+
+    generate_dataset_with_cf(path + 'train_all.tsv', templates, wordlist_dict, cf_dict, cf_keys, 50)
+    generate_dataset_with_cf(path + 'test_all.tsv', templates, wordlist_dict, cf_dict, cf_keys, 50)
+    extract_test_problem(path + 'test_all.tsv')
+
+    for mode in ['train', 'test']:
+        if ((not os.path.exists(path + f'{mode}_all_wakati.tsv')) and do_wakati) or do_update:
+            wakati(path + f'{mode}_all')
+
+    for mode in ['random', 'custom']:
+        if not do_split[mode]:
+            continue
+        for split in split_dict[mode]:
+            split_dataset(templates, ver, split, mode)
+
+
+if __name__ == '__main__':
+    tagger = MeCab.Tagger("-p")
+    janome_tokenizer = Tokenizer()
+    kotodama.setSegmentationEngine(kotodama.SegmentationEngine.JANOME, janome_tokenizer)
+    kotodama.disableError(Juman())
+    main()
