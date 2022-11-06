@@ -70,7 +70,7 @@ id	premise	hypothesis	entailment	contradiction	ng time unit
 80	agent_1[ガ格1:1] が np_1[ヲ格:1] を vp_ta_1_past[ガ格1,ガ格2,ヲ格:1] 。 agent_2[ガ格2:1] が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より先に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より先に np_1 を vp_ta_1_past 。	False	True	month,day,hour
 81	agent_1[ガ格1:1] が np_1[ヲ格:1] を vp_ta_1_past[ガ格1,ガ格2,ヲ格:1] 。 agent_2[ガ格2:1] が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より後に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より後に np_1 を vp_ta_1_past 。	False	True	month,day,hour
 82	agent_1[ガ格:1] が interval_1 で np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。 agent_1 は tp_2 にその np_1 を vp_ta_1_coni 始めた。	agent_1 は tp_3 までにその np_1 を vp_ta_1_coni 終えた。	tp_2.end + interval_1 <= tp_3.end	tp_3.end < tp_2.end + interval_1	None
-83	agent_1[ガ格:1] が interval_1 以上かけて np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。 agent_1 は tp_2 にその np_1 を vp_ta_1_coni 始めた。	agent_1 は tp_3 までにその np_1 を vp_ta_1_coni 終えた。	False	tp_3.end <= tp_2.start	None
+83	agent_1[ガ格:1] が interval_1 以上かけて np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。 agent_1 は tp_2 にその np_1 を vp_ta_1_coni 始めた。	agent_1 は tp_3 までにその np_1 を vp_ta_1_coni 終えた。	False	tp_3.end <= tp_2.start or tp_2.end + interval_1 > tp_3.end	None
 84	agent_1[ガ格:1] が interval_1 で np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_2 を費やした。	interval_1 == interval_2	interval_1 != interval_2	None
 85	agent_1[ガ格:1] が interval_1 以上かけて np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_2 を費やした。	False	interval_1 > interval_2	None
 86	agent_1[ガ格:1] が interval_1 で np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_2 以上費やした。	interval_1 >= interval_2	interval_1 < interval_2	None
