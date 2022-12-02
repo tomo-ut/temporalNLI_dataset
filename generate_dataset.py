@@ -1,9 +1,13 @@
-import random
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from janome.tokenizer import Tokenizer
 from kotodama import kotodama
 from pyknp import Juman
+from collections import defaultdict
+from wakati_dataset import wakati
+from ast import literal_eval
+from pprint import pprint
+import random
 import pandas as pd
 import re
 import pickle
@@ -11,8 +15,6 @@ import MeCab
 import datetime
 import time
 import os
-from collections import defaultdict
-from wakati_dataset import wakati
 
 
 # 単語の品詞を取得する
@@ -235,40 +237,63 @@ def generate_time(elements, tp_format, interval_format, time_span):
             continue
         if element in times:
             continue
-        if '-' in element:
-            tp = element[:element.find('-')]
-            reftime = times[tp]
-            if 'day' in element:
-                diff = int(re.search('(\\d+)day', element).groups()[0])
-                daynum = int(re.search('(\\d+)日', reftime).groups()[0])
-                newday = daynum - diff
-                times[element] = reftime.replace(f'{daynum}日', f'{newday}日')
-            continue
+        while True:
+            if '-' in element and '=' not in element:
+                tp = element[:element.find('-')]
+                reftime = times[tp]
+                if 'day' in element:
+                    diff = int(re.search('(\\d+)day', element).groups()[0])
+                    daynum = int(re.search('(\\d+)日', reftime).groups()[0])
+                    if '-' in element:
+                        newday = daynum - diff
+                    times[element] = reftime.replace(f'{daynum}日', f'{newday}日')
+                break
 
-        if time_span == 'random':
-            time = random_date("2000,1,1,0", "2021,1,1,0")
-            interval = str(random.choice(range(1, 10)))
-        elif time_span == 'short':
-            if tp_format[-1] == '時':
-                time = random_date(f"{y},{m},{d},{str(start_h)}", f"{y},{m},{d},{str(start_h + 8)}")
-            elif tp_format[-1] == '日':
-                time = random_date(f"{y},{m},{str(start_d)},0", f"{y},{m},{str(start_d + 10)},0")
-            elif tp_format[-1] == '月':
-                time = random_date(f"{y},{str(start_m)},1,0", f"{y},{str(start_m + 4)},1,0")
+            if time_span == 'random':
+                time = random_date("2000,1,1,0", "2021,1,1,0")
+                interval = str(random.choice(range(1, 10)))
+            elif time_span == 'short':
+                if tp_format[-1] == '時':
+                    time = random_date(f"{y},{m},{d},{str(start_h)}", f"{y},{m},{d},{str(start_h + 8)}")
+                elif tp_format[-1] == '日':
+                    time = random_date(f"{y},{m},{str(start_d)},0", f"{y},{m},{str(start_d + 10)},0")
+                elif tp_format[-1] == '月':
+                    time = random_date(f"{y},{str(start_m)},1,0", f"{y},{str(start_m + 4)},1,0")
+                else:
+                    time = random_date(f"{str(start_y)},1,1,0", f"{str(start_y + 5)},1,1,0")
+                interval = str(random.choice(range(1, 3)))
             else:
-                time = random_date(f"{str(start_y)},1,1,0", f"{str(start_y + 5)},1,1,0")
-            interval = str(random.choice(range(1, 3)))
-        else:
-            time = random_date("2000,1,1,0", "2021,1,1,0")
-            interval = str(random.choice(range(1, 10)))
+                time = random_date("2000,1,1,0", "2021,1,1,0")
+                interval = str(random.choice(range(1, 10)))
 
-        year, month, day, hour = [e.lstrip('0') for e in time.split(",")]
-        if hour == '':
-            hour = '0'
-        if 'tp' in element:
-            times[element] = tp_format.replace('y', year).replace('m', month).replace('d', day).replace('h', hour)
-        if 'interval' in element:
-            times[element] = interval_format.replace('i', interval)
+            year, month, day, hour = [e.lstrip('0') for e in time.split(",")]
+            if hour == '':
+                hour = '0'
+            if 'tp' in element:
+                new_time = tp_format.replace('y', year).replace('m', month).replace('d', day).replace('h', hour)
+                if new_time in times.values():
+                    continue
+                elif '!=' in element:
+                    tp = element.split('!=')[1]
+                    if '-' in tp:
+                        tp = tp[:tp.find('-')]
+                        reftime = times[tp]
+                        if 'day' in element:
+                            diff = int(re.search('(\\d+)day', element).groups()[0])
+                            daynum = int(re.search('(\\d+)日', reftime).groups()[0])
+                            if '-' in element:
+                                newday = daynum - diff
+                            reftime = reftime.replace(f'{daynum}日', f'{newday}日')
+                    if new_time == reftime:
+                        continue
+                    times[element.split('!=')[0]] = new_time
+                    break
+                else:
+                    times[element] = new_time
+                    break
+            if 'interval' in element:
+                times[element] = interval_format.replace('i', interval)
+                break
     return times
 
 
@@ -338,8 +363,12 @@ def generate_sentence_with_cf(template, wordlist_dict, cf_dict, cf_keys, tp_form
                 new_element += suffix
             elif 'tp' in element or 'interval' in element:
                 # new_element = assign_time(element, tp_format, interval_format, memo, times, time_span)
-                new_element = times[element]
-                memo[element] = new_element
+                if '!=' in element:
+                    new_element = times[element.split('!=')[0]]
+                    memo[element.split('!=')[0]] = new_element
+                else:
+                    new_element = times[element]
+                    memo[element] = new_element
             elif element and element[0] == '[':
                 cands = element[1:-1].split(',')
                 new_element = random.choice(cands)
@@ -368,6 +397,7 @@ def generate_sentence_with_cf(template, wordlist_dict, cf_dict, cf_keys, tp_form
 def generate_dataset_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_keys, data_num):
     texts = []
     time_unit_list = ['year', 'month', 'day', 'hour']
+    ja2en_timeunit = {"年": "year", "月": "month", "日": "day", "時": "hour"}
     tu2intervalformat = {"year": "i年間", "month": "iヶ月間", "day": "i日間", "hour": "i時間"}
     # tp_format_list = {"i時間": ["y年m月d日h時", "m月d日h時", "d日h時", "h時"],
     #                   "i日間": ["y年m月d日", "m月d日", "d日"],
@@ -379,9 +409,12 @@ def generate_dataset_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_key
                       "i年間": ["y年", "y年m月", "y年m月d日", "y年m月d日h時"]}
     label_dist = defaultdict(int)
     for template in tqdm(templates):
+        ng_time_units = template['ng time unit'].split(',')
         for time_unit in time_unit_list:
-            if time_unit in template['ng time unit'].split(','):
+            if time_unit in ng_time_units:
                 continue
+            else:
+                ng_time_formats = [ng_time_unit.split('.') for ng_time_unit in ng_time_units]
             interval_format = tu2intervalformat[time_unit]
             idx = 0
             for tp_format in tp_format_list[interval_format]:
@@ -398,6 +431,9 @@ def generate_dataset_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_key
                     time_format = "None"
                     time_spans = ['None']
 
+                if [time_unit, ja2en_timeunit[tp_format[-1]]] in ng_time_formats:
+                    continue
+
                 # 1つのテンプレートあたりいくつのインスタンスを生成するか
                 for time_span in time_spans:
                     for _ in range(data_num):
@@ -412,17 +448,16 @@ def generate_dataset_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_key
                             if not zero_flag:
                                 break
                             # random.seed(max_perplexity)
-                        texts.append([''.join(text[:-1]), text[-1], ans, template['id'], time_format, time_span])
+                        texts.append([''.join(text[:-1]), text[-1], ans, template['id'],
+                                     time_format, time_span, template['category']])
                         label_dist[ans] += 1
 
     with open(out_file, 'w') as outfile:
-        outfile.write('num\tpremise\thypothesis\tgold_label\ttemplate_num\ttime_format\ttime_span\n')
+        outfile.write('num\tpremise\thypothesis\tgold_label\ttemplate_num\ttime_format\ttime_span\tcategory\n')
         idx = 1
         for text in texts:
-            outfile.write(f'{str(idx)}\t{text[0]}\t{text[1]}\t{text[2]}\t{text[3]}\t{text[4]}\t{text[5]}\n')
+            outfile.write(f'{str(idx)}\t{text[0]}\t{text[1]}\t{text[2]}\t{text[3]}\t{text[4]}\t{text[5]}\t{text[6]}\n')
             idx += 1
-    print(out_file + ':\t', end='')
-    print(label_dist)
 
 
 def split_dataset(templates, ver, split, seed=0, mode='random'):
@@ -431,6 +466,7 @@ def split_dataset(templates, ver, split, seed=0, mode='random'):
             and os.path.exists(f'dataset/ver_{ver}/train_{split_str}_wakati.tsv'):
         return 0
     if mode == 'random':
+        split_info = {'mode': mode, 'time_format': [], 'time_span': []}
         test_size = 1 - float('0.' + str(split))
         templates_train, templates_test = train_test_split(templates, test_size=test_size, random_state=seed)
         templates_train_idx = [template_train['id'] for template_train in templates_train]
@@ -438,35 +474,64 @@ def split_dataset(templates, ver, split, seed=0, mode='random'):
         templates_train_idx.sort()
         templates_test_idx.sort()
         seed = '-' + str(seed)
+        split_info['templates'] = templates_test_idx
         with open(f'dataset/split_info/{split_str}{seed}.txt', 'w') as out:
-            for idx in templates_test_idx:
-                out.write(str(idx) + '\n')
+            pprint(split_info, stream=out, compact=True)
     elif mode == 'custom':
         seed = ''
-        templates_test_idx = pd.read_csv(f'dataset/split_info/{split_str}.txt', header=None).to_dict('list')[0]
+        if not os.path.exists(f'dataset/split_info/{split_str}.txt'):
+            return 0
+        with open(f'dataset/split_info/{split_str}.txt', 'r') as infile:
+            split_info = literal_eval(infile.read())
+        templates_test_idx = split_info['templates']
         all_ids = [template['id'] for template in templates]
         templates_train_idx = sorted(list(set(all_ids) - set(templates_test_idx)))
+    time_format_train = list(set(["None", "年間", "月間", "日間", "時間", "時", "日", "日時", "月", "月日", "月日時",
+                             "年", "年月", "年月日", "年月日時"]) - set(split_info['time_format']))
+    time_span_train = list(set(['None', 'random', 'short']) - set(split_info['time_span']))
     print(f"train template: {len(templates_train_idx)}, test template: {len(templates_test_idx)}")
     for suffix in ['', '_wakati']:
         all_problems = pd.read_csv(f'./dataset/ver_{ver}/train_all{suffix}.tsv', sep='\t')
-        train_problems = all_problems.query('template_num in @templates_train_idx')
-        train_problems.to_csv(f'dataset/ver_{ver}/train_{split_str}{suffix}{seed}.tsv', sep='\t', index=False)
+        train_problems = all_problems.query(
+            'template_num in @templates_train_idx & time_format in @time_format_train & time_span in @time_span_train')
+        train_problems.to_csv(f'dataset/ver_{ver}/train_{split_str}{seed}{suffix}.tsv', sep='\t', index=False)
     return 0
 
 
-def extract_test_problem(path, num):
-    problems = pd.read_csv(path, sep='\t').to_dict('records')
+def extract_problem(inpath, outpath, num):
+    problems = pd.read_csv(inpath, sep='\t').to_dict('records')
     extracted_problems = []
     counters = defaultdict(lambda: num)
+    label_dist = defaultdict(int)
     idx = 1
+    template2timeformat = defaultdict(list)
+    use_timeformat = defaultdict(lambda: ['年月日時', '時間', "None"])
+    if 'test' in inpath:
+        for problem in problems:
+            template2timeformat[problem['template_num']].append(problem['time_format'])
+            template2timeformat[problem['template_num']] = list(set(template2timeformat[problem['template_num']]))
+        for template in template2timeformat:
+            if set(template2timeformat[template]) & set(['年月日時', '時間', "None"]) == set():
+                use_timeformat[template].append(
+                    sorted(
+                        template2timeformat[template],
+                        key=lambda x: len(x),
+                        reverse=True)[0])
+
     for problem in problems:
+        if 'test' in inpath and problem['time_format'] not in use_timeformat[problem['template_num']]:
+            continue
         gtt = problem['gold_label'] + str(problem['template_num']) + problem['time_format'] + problem['time_span']
         if counters[gtt]:
             counters[gtt] -= 1
             problem['num'] = idx
             idx += 1
+            label_dist[problem['gold_label']] += 1
+            label_dist['all'] += 1
             extracted_problems.append(problem)
-    pd.DataFrame(extracted_problems).to_csv(path, sep='\t', index=False)
+    pd.DataFrame(extracted_problems).to_csv(outpath, sep='\t', index=False)
+    print(outpath + ':\t', end='')
+    print(label_dist)
 
 
 def initialize(template_ver):
@@ -500,31 +565,44 @@ def initialize(template_ver):
 
 def main():
     random.seed(0)
-    template_ver = 'ver_1_1_1'
-    ver = '1_2'
+    template_ver = 'ver_1_3'
+    ver = '1_5'
     test_num_per_pattern = 2
-    split_dict = {'random': [9, 8, 7], 'custom': [0, 1, 2]}
-    do_split = {'random': True, 'custom': True}
+    train_num_per_pattern = 10
+    split_dict = {'random': [9, 8, 7], 'custom': ['template', 'timeformat', 'timespan']}
+    do_split = {'random': False, 'custom': False}
     do_update = False
-    do_wakati = True
+    do_wakati = False
     path = f'dataset/ver_{ver}/'
 
     os.makedirs(f'./dataset/ver_{ver}', exist_ok=True)
     templates, wordlist_dict, cf_dict, cf_keys = initialize(template_ver)
 
-    generate_dataset_with_cf(path + 'train_all.tsv', templates, wordlist_dict, cf_dict, cf_keys, 25)
-    generate_dataset_with_cf(path + 'test_all.tsv', templates, wordlist_dict, cf_dict, cf_keys, 10)
-    extract_test_problem(path + 'test_all.tsv', test_num_per_pattern)
+    if do_update:
+        generate_dataset_with_cf(path + 'train_raw.tsv', templates, wordlist_dict, cf_dict, cf_keys, 100)
+        generate_dataset_with_cf(path + 'test_raw.tsv', templates, wordlist_dict, cf_dict, cf_keys, 100)
+        extract_problem(path + 'train_raw.tsv', path + 'train_all.tsv', train_num_per_pattern)
+        extract_problem(path + 'test_raw.tsv', path + 'test_2.tsv', 2)
+        extract_problem(path + 'test_raw.tsv', path + 'test_3.tsv', 3)
+    extract_problem(path + 'test_raw.tsv', path + 'test_5.tsv', 5)
 
-    for mode in ['train', 'test']:
-        if ((not os.path.exists(path + f'{mode}_all_wakati.tsv')) and do_wakati) or do_update:
-            wakati(path + f'{mode}_all')
+    # for mode in ['train', 'test']:
+    #     if ((not os.path.exists(path + f'{mode}_all_wakati.tsv')) and do_wakati) or do_update:
+    #         wakati(path + f'{mode}_all')
+    if do_wakati:
+        wakati(path + 'train_all')
+        wakati(path + 'test_2')
+        wakati(path + 'test_3')
 
     for mode in ['random', 'custom']:
         if not do_split[mode]:
             continue
         for split in split_dict[mode]:
-            split_dataset(templates, ver, split, 0, mode)
+            if mode == 'custom':
+                for dif in ['easy', 'hard']:
+                    split_dataset(templates, ver, str(split) + '-' + dif, 0, mode)
+            else:
+                split_dataset(templates, ver, split, 0, mode)
 
 
 if __name__ == '__main__':
