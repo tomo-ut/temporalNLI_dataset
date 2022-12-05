@@ -1,0 +1,80 @@
+id	premise	hypothesis	entailment	contradiction	ng time unit	category
+0	agent_1[ガ格:1] は place_1[ニ格:1] に np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ニ格,ヲ格::1] いる。	agent_1 は 現在 place_1 に np_1 を vp_ta_1_prog いる。	True	False	year,month,day	現在（現在形）
+1	tp_1 以来、 agent_1[ガ格:1] は place_1[ニ格:1] に stative_vp_zi_1[ガ格,ニ格:tp:1] 。現在、 tp_2 である。	agent_1 は tp_3 には place_1 に stative_vp_zi_1_past 。	tp_1.end <= tp_3.end, tp_3.end <= tp_2.end	tp_3.start < tp_1.start	None	以来（状態動詞）
+3	agent_1[ガ格:1] は tp_1 以来、 np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:tp:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。	tp_1.end <= tp_3.end, tp_3.end <= tp_2.end	tp_3.start < tp_1.start	None	以来（テイル形）
+4	tp_1 以来、 agent_1[ガ格:1] は np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:tp:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。	tp_1.end <= tp_3.end, tp_3.end <= tp_2.end	tp_3.start < tp_1.start	None	以来（テイル形）
+5	agent_1[ガ格:1] は tp_1 以来 np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ヲ格:tp:1] いる。現在、 tp_2 である。	agent_1 は tp_3 に np_1 を vp_ta_1_past 。	tp_1.end <= tp_3.end, tp_3.end <= tp_2.end	tp_3.start < tp_1.start	None	以来（テイル形）
+8	昨日、 agent_1[ガ格:1] は np_1[ニ格:1] に vp_zi_1_past[ガ格,ニ格:tp:1] 。今日は tp_1 だ。	agent_1 は tp_2!=tp_1-1day に np_1 に vp_zi_1_past 。	tp_1.start - 1 * day == tp_2.start, tp_1.end - 1 * day == tp_2.end	False	year.year,year.month,year.hour,month.month,month.hour,day.hour,hour.hour	照応（昨日）
+9	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1[ガ格::1] 前に vp_zi_2_past[ガ格::2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3[ガ格::3] 前に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3 前に vp_zi_2_past 。	True	False	year,month,day	順序（推移律）
+10	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1_past[ガ格::1] 後に vp_zi_2_past[ガ格::2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3_past[ガ格::3] 後に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3_past 後に vp_zi_2_past 。	True	False	year,month,day	順序（推移律）
+11	agent_1[ガ格:1] が vp_zi_1_past[ガ格::1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格::2] 。 agent_1 は agent_2 が vp_zi_2 前に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1_past 後で vp_zi_2_past 。	True	False	year,month,day	順序（前後）
+12	agent_1[ガ格:1] が vp_zi_1_past[ガ格::1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格::2] 。 agent_1 は agent_2 が vp_zi_2_past 後に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1 前に vp_zi_2_past 。	True	False	year,month,day	順序（前後）
+13	agent_1[ガ格:1] が vp_zi_1_past[ガ格::1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格::2] 。 agent_2 は agent_1 が vp_zi_1 前に vp_zi_2_past 。	agent_1 は agent_2 が vp_zi_2_past 後で vp_zi_1_past 。	True	False	year,month,day	順序（前後）
+14	agent_1[ガ格1:1] が np_1[ヲ格:1] を vp_ta_1_past[ガ格1,ガ格2,ヲ格::1] 。 agent_2[ガ格2:1] が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より先に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より後に np_1 を vp_ta_1_past 。	True	False	year,month,day	順序（先後）
+15	agent_1[ガ格1:1] が np_1[ヲ格:1] を vp_ta_1_past[ガ格1,ガ格2,ヲ格::1] 。 agent_2[ガ格2:1] が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より後に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より先に np_1 を vp_ta_1_past 。	True	False	year,month,day	順序（先後）
+17	agent_1[ガ格:1] が place_1[マデ格:1] まで vp_zi_1_past[ガ格,マデ格::1] 。 agent_2[ガ格:2] が place_2[マデ格:2] まで vp_zi_2_past[ガ格,マデ格::2] 。 agent_1 は agent_2 が place_2 まで vp_zi_2 前に、 place_1 まで vp_zi_1_past 。	agent_2 は agent_1 が place_1 まで vp_zi_1_past 後に、 place_2 まで vp_zi_2_past 。	True	False	year,month,day	順序（前後+アスペクト)
+19	agent_1[ガ格:1] は tp_1 に place_1[ニ格:1] に vp_zi_1_prog[ガ格,ニ格:tp:1] いた。	agent_1 は tp_2 に place_1 に vp_zi_1_prog いた。	tp_1.start == tp_2.start, tp_1.end == tp_2.end	False	None	未言及の時点
+20	agent_1[ガ格:1] は tp_1 に [最初,最後] の np_1[ヲ格:1] を vp_ta_1_past[ガ格,ノ格~ヲ格,ヲ格:tp:1] 。	agent_1 は tp_2 に [最初,最後] の np_1 を vp_ta_1_past 。	tp_1.start == tp_2.start, tp_1.end == tp_2.end	tp_1.start != tp_2.start or tp_1.end != tp_2.end	None	未言及の時点（唯一事象）
+21	agent_1[ガ格:1] は tp_1 に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:tp:1] 。	agent_1 は tp_2 に np_1 を vp_ta_1_past 。	tp_1.start == tp_2.start, tp_1.end == tp_2.end	False	None	未言及の時点
+22	agent_1[ガ格:1] は tp_1 に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:tp:1] 。	agent_1 は tp_2 にその np_1 を vp_ta_1_past 。	tp_1.start == tp_2.start, tp_1.end == tp_2.end	False	None	未言及の時点（照応）
+23	agent_1[ガ格:1] が tp_1 に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:tp:1] 。	agent_1 はそれを tp_2 に vp_ta_1_past 。	tp_1.start == tp_2.start, tp_1.end == tp_2.end	tp_1.start != tp_2.start or tp_1.end != tp_2.end	None	未言及の時点（唯一事象）
+25	agent_1[ガ格:1] が interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。 agent_1 は tp_2 にその np_1 を vp_ta_1_coni 始めた。	agent_1 は tp_3 までにその np_1 を vp_ta_1_coni 終えた。	tp_2.end + interval_1 <= tp_3.end	tp_3.end <= tp_2.start	None	2区間比較（以内/以内+区間計算）
+26	agent_1[ガ格:1] が interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_2 を費やした。	False	interval_1 < interval_2	None	2区間比較（以内/ちょうど）
+27	agent_1[ガ格:1] が interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_2 以上費やした。	False	interval_1 < interval_2	None	2区間比較（以内/以上）
+28	agent_1[ガ格:1] が interval_1 以内に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 は interval_2 以内に np_1 を vp_ta_1_past 。	interval_1 <= interval_2	False	None	2区間比較（以内/以内）
+29	agent_1[ガ格:1] が interval_1 [以内に,で,以上かけて] np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 は np_1 を vp_ta_1_past 。	True	False	None	完了
+31	agent_1[ガ格:1] は interval_1 以内に多くの np_2[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 は np_2 を vp_ta_1 のに interval_2 を費やした。	False	interval_1 < interval_2	None	2区間比較（以内/ちょうど+多く）
+32	agent_1[ガ格:1] は interval_1 place_1[ニ格:1] に vp_zi_1_past[ガ格,ニ格:cint:1] 。	agent_1 は interval_2 place_1 に vp_zi_1_past 。	interval_2 < interval_1	False	None	2区間比較（ちょうど/以上+少なくとも）
+33	agent_1[ガ格:1] は interval_1 place_1[ニ格:1] に vp_zi_1_past[ガ格,ニ格:cint:1] 。	agent_1 はちょうど interval_2 place_1 に vp_zi_1_past 。	False	interval_1 > interval_2	None	2区間比較（ちょうど/ちょうど+ちょうど）
+34	agent_1[ガ格:1] は place_1[ニ格:1] に interval_1 [,以上] vp_zi_1_past[ガ格,ニ格:cint:1] 。	agent_1 は place_1 に vp_zi_1_past 。	True	False	None	完了
+35	agent_1[ガ格:1] は np_1[ノ格~ヲ格:1] の np_2[ヲ格:1] を interval_1 vp_ta_1_past[ガ格,ノ格~ヲ格,ヲ格:cint:1] 。	agent_1 は np_1 の np_2 を interval_2 vp_ta_1_past 。	interval_2 < interval_1	False	None	2区間比較（ちょうど/以上+少なくとも）
+36	agent_1[ガ格:1] は np_1[ノ格~ヲ格:1] の np_2[ヲ格:1] を interval_1 vp_ta_1_past[ガ格,ノ格~ヲ格,ヲ格:cint:1] 。	agent_1 は np_1 の np_2 を vp_ta_1_past 。	True	False	None	完了
+37	agent_1[ガ格:1] は interval_1 np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:cint:1] 。	agent_1 は interval_2 np_1 を vp_ta_1_past 。	interval_2 < interval_1	False	None	2区間比較（ちょうど/以上+少なくとも）
+38	agent_1[ガ格:1] は interval_1 np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:cint:1] 。	agent_1 は np_1 を vp_ta_1_past 。	True	False	None	完了
+40	agent_1[ガ格:1] は毎 time_unit_1 np_1[ニ格:1] に np_2[ヲ格:1] を vp_ta_1_past[ガ格,ニ格,ヲ格::1] 。	agent_1 が毎 time_unit_1 np_2 を vp_ta_1_past np_1 が存在する。	False	False	None	習慣+存在量化（毎+時間単位）
+42	agent_1[ガ格:1] はいつも np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:tp:1] 。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_2 に np_1 を遅れて vp_ta_1_past 。	tp_1.start == tp_2.start, tp_1.end == tp_2.end	False	None	習慣（未言及+いつも）
+43	agent_1[ガ格:1] は決して np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:tp:1] ことはない。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_2 に np_1 を遅れて vp_ta_1_past 。	False	True	None	習慣+否定（未言及+決してない）
+46	昨日、 agent_1[ガ格:1] は np_1[ニ格:1] に vp_zi_1_past[ガ格,ニ格:tp:1] 。今日は tp_1 だ。	agent_1 は tp_1-1day に np_1 に vp_zi_1_past 。	True	False	year.year,year.month,year.hour,month.month,month.hour,day.hour,hour.hour	照応（昨日）
+47	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1[ガ格::1] 前に vp_zi_2_past[ガ格::2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3[ガ格::3] 前に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3_past 後に vp_zi_2_past 。	False	True	year,month,day	順序（推移律）
+48	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1[ガ格::1] 前に vp_zi_2_past[ガ格::2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3_past[ガ格::3] 後に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3 前に vp_zi_2_past 。	False	False	year,month,day	順序（推移律不可）
+49	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1[ガ格::1] 前に vp_zi_2_past[ガ格::2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3_past[ガ格::3] 後に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3_past 後に vp_zi_2_past 。	False	False	year,month,day	順序（推移律不可）
+50	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1[ガ格::1] 前に vp_zi_2_past[ガ格::2] 。 agent_1 は agent_3[ガ格:3] が vp_zi_3[ガ格::3] 前に vp_zi_2_past 。	agent_2 は agent_3 が vp_zi_3 前に vp_zi_1_past 。	False	False	year,month,day	順序（推移律不可）
+51	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1[ガ格::1] 前に vp_zi_2_past[ガ格::2] 。 agent_1 は agent_3[ガ格:3] が vp_zi_3[ガ格::3] 前に vp_zi_2_past 。	agent_2 は agent_3 が vp_zi_3_past 後に vp_zi_1_past 。	False	False	year,month,day	順序（推移律不可）
+52	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1[ガ格::1] 前に vp_zi_2_past[ガ格::2] 。 agent_1 は agent_3[ガ格:3] が vp_zi_3_past[ガ格::3] 後に vp_zi_2_past 。	agent_2 は agent_3 が vp_zi_3 前に vp_zi_1_past 。	False	True	year,month,day	順序（推移律+前後)
+53	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1[ガ格::1] 前に vp_zi_2_past[ガ格::2] 。 agent_1 は agent_3[ガ格:3] が vp_zi_3_past[ガ格::3] 後に vp_zi_2_past 。	agent_2 は agent_3 が vp_zi_3_past 後に vp_zi_1_past 。	True	False	year,month,day	順序（推移律+前後)
+54	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1_past[ガ格::1] 後に vp_zi_2_past[ガ格::2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3_past[ガ格::3] 後に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3 前に vp_zi_2_past 。	False	True	year,month,day	順序（推移律）
+55	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1_past[ガ格::1] 後に vp_zi_2_past[ガ格::2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3[ガ格::3] 前に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3_past 後に vp_zi_2_past 。	False	False	year,month,day	順序（推移律不可）
+56	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1_past[ガ格::1] 後に vp_zi_2_past[ガ格::2] 。 agent_2 は agent_3[ガ格:3] が vp_zi_3[ガ格::3] 前に vp_zi_1_past 。	agent_1 は agent_3 が vp_zi_3 前に vp_zi_2_past 。	False	False	year,month,day	順序（推移律不可）
+57	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1_past[ガ格::1] 後に vp_zi_2_past[ガ格::2] 。 agent_1 は agent_3[ガ格:3] が vp_zi_3_past[ガ格::3] 後に vp_zi_2_past 。	agent_2 は agent_3 が vp_zi_3_past 後に vp_zi_1_past 。	False	False	year,month,day	順序（推移律不可）
+58	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1_past[ガ格::1] 後に vp_zi_2_past[ガ格::2] 。 agent_1 は agent_3[ガ格:3] が vp_zi_3_past[ガ格::3] 後に vp_zi_2_past 。	agent_2 は agent_3 が vp_zi_3 前に vp_zi_1_past 。	False	False	year,month,day	順序（推移律不可）
+59	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1_past[ガ格::1] 後に vp_zi_2_past[ガ格::2] 。 agent_1 は agent_3[ガ格:3] が vp_zi_3[ガ格::3] 前に vp_zi_2_past 。	agent_2 は agent_3 が vp_zi_3_past 後に vp_zi_1_past 。	False	True	year,month,day	順序（推移律+前後)
+60	agent_1[ガ格:1] は agent_2[ガ格:2] が vp_zi_1_past[ガ格::1] 後に vp_zi_2_past[ガ格::2] 。 agent_1 は agent_3[ガ格:3] が vp_zi_3[ガ格::3] 前に vp_zi_2_past 。	agent_2 は agent_3 が vp_zi_3 前に vp_zi_1_past 。	True	False	year,month,day	順序（推移律+前後)
+61	agent_1[ガ格:1] が vp_zi_1_past[ガ格::1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格::2] 。 agent_1 は agent_2 が vp_zi_2 前に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1 前に vp_zi_2_past 。	False	True	year,month,day	順序（前後）
+62	agent_1[ガ格:1] が vp_zi_1_past[ガ格::1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格::2] 。 agent_1 は agent_2 が vp_zi_2_past 後に vp_zi_1_past 。	agent_2 は agent_1 が vp_zi_1_past 後で vp_zi_2_past 。	False	True	year,month,day	順序（前後）
+63	agent_1[ガ格:1] が place_1[マデ格:1] まで vp_zi_1_past[ガ格,マデ格::1] 。 agent_2[ガ格:2] が place_2[マデ格:2] まで vp_zi_2_past[ガ格,マデ格::2] 。 agent_1 は agent_2 が place_2 まで vp_zi_2 前に、 place_1 まで vp_zi_1_past 。	agent_2 は agent_1 が place_1 まで vp_zi_1 前に、 place_2 まで vp_zi_2_past 。	False	True	year,month,day	順序（前後+アスペクト)
+67	agent_1[ガ格:1] は tp_1 に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:tp:1] 。	agent_1 は tp_1 にその np_1 を vp_ta_1_past 。	True	False	None	言及済みの時点（照応+状態）
+68	agent_1[ガ格:1] が tp_1 に np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:tp:1] 。	agent_1 はそれを tp_1 に vp_ta_1_past 。	True	False	None	言及済みの時点（照応+事象）
+70	agent_1[ガ格:1] は毎 time_unit_1 np_1[ニ格:1] に np_2[ヲ格:1] を vp_ta_1_past[ガ格,ニ格,ヲ格::1] 。	agent_1 が np_2 を vp_ta_1_past np_1 が存在する。	True	False	None	習慣+存在量化
+71	agent_1[ガ格:1] は毎 time_unit_1 np_1[ニ格:1] に np_2[ヲ格:1] を vp_ta_1_past[ガ格,ニ格,ヲ格::1] 。	agent_1 が np_2 を vp_ta_1_past np_1 は存在しない。	False	True	None	習慣+存在量化（否定）
+72	agent_1[ガ格:1] はいつも np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:tp:1] 。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_1 に np_1 を遅れて vp_ta_1_past 。	True	False	None	習慣（言及済み+いつも）
+73	agent_1[ガ格:1] はいつも np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:tp:1] 。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_2 に np_1 を遅れずに vp_ta_1_past 。	False	True	None	習慣+否定（未言及+いつも）
+74	agent_1[ガ格:1] は決して np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:tp:1] ことはない。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_2 に np_1 を遅れずに vp_ta_1_past 。	tp_1.start == tp_2.start, tp_1.end == tp_2.end	False	None	習慣（未言及+決してない）
+75	agent_1[ガ格:1] は決して np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:tp:1] ことはない。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_1 に np_1 を遅れずに vp_ta_1_past 。	True	False	None	習慣（言及済み+決してない）
+76	agent_1[ガ格:1] は place_1[ニ格:1] に np_1[ヲ格:1] を vp_ta_1_prog[ガ格,ニ格,ヲ格::1] いた。	agent_1 は 現在 place_1 に np_1 を vp_ta_1_prog いる。	False	False	year,month,day	現在（過去形）
+77	agent_1[ガ格:1] が vp_zi_1_past[ガ格::1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格::2] 。 agent_2 は agent_1 が vp_zi_1 前に vp_zi_2_past 。	agent_1 は agent_2 が vp_zi_2 る前に vp_zi_1_past 。	False	True	year,month,day	順序（前後）
+78	agent_1[ガ格:1] が vp_zi_1_past[ガ格::1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格::2] 。 agent_2 は agent_1 が vp_zi_1_past 後に vp_zi_2_past 。	agent_1 は agent_2 が vp_zi_2 る前に vp_zi_1_past 。	True	False	year,month,day	順序（前後）
+79	agent_1[ガ格:1] が vp_zi_1_past[ガ格::1] 。 agent_2[ガ格:2] が vp_zi_2_past[ガ格::2] 。 agent_2 は agent_1 が vp_zi_1_past 後に vp_zi_2_past 。	agent_1 は agent_2 が vp_zi_2_past 後で vp_zi_1_past 。	False	True	year,month,day	順序（前後）
+80	agent_1[ガ格1:1] が np_1[ヲ格:1] を vp_ta_1_past[ガ格1,ガ格2,ヲ格::1] 。 agent_2[ガ格2:1] が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より先に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より先に np_1 を vp_ta_1_past 。	False	True	year,month,day	順序（先後）
+81	agent_1[ガ格1:1] が np_1[ヲ格:1] を vp_ta_1_past[ガ格1,ガ格2,ヲ格::1] 。 agent_2[ガ格2:1] が np_1 を vp_ta_1_past 。 agent_1 が agent_2 より後に np_1 を vp_ta_1_past 。	agent_2 は agent_1 より後に np_1 を vp_ta_1_past 。	False	True	year,month,day	順序（先後）
+82	agent_1[ガ格:1] が interval_1 で np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。 agent_1 は tp_2 にその np_1 を vp_ta_1_coni 始めた。	agent_1 は tp_3 までにその np_1 を vp_ta_1_coni 終えた。	tp_2.end + interval_1 <= tp_3.end	tp_3.end < tp_2.end + interval_1	None	2区間比較（ちょうど/以内+区間計算）
+83	agent_1[ガ格:1] が interval_1 以上かけて np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。 agent_1 は tp_2 にその np_1 を vp_ta_1_coni 始めた。	agent_1 は tp_3 までにその np_1 を vp_ta_1_coni 終えた。	False	tp_3.end <= tp_2.start or tp_2.end + interval_1 > tp_3.end	None	2区間比較（以上/以内+区間計算）
+84	agent_1[ガ格:1] が interval_1 で np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_2 を費やした。	interval_1 == interval_2	interval_1 != interval_2	None	2区間比較（ちょうど/ちょうど）
+85	agent_1[ガ格:1] が interval_1 以上かけて np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_2 を費やした。	False	interval_1 > interval_2	None	2区間比較（以上/ちょうど）
+86	agent_1[ガ格:1] が interval_1 で np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_2 以上費やした。	interval_1 >= interval_2	interval_1 < interval_2	None	2区間比較（ちょうど/以上）
+87	agent_1[ガ格:1] が interval_1 以上かけて np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 はその np_1 を vp_ta_1 のに interval_2 以上費やした。	interval_1 >= interval_2	False	None	2区間比較（以上/以上）
+88	agent_1[ガ格:1] が interval_1 で np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 は interval_2 以内に np_1 を vp_ta_1_past 。	interval_1 <= interval_2	interval_1 > interval_2	None	2区間比較（ちょうど/以内）
+89	agent_1[ガ格:1] が interval_1 以上かけて np_1[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 は interval_2 以内に np_1 を vp_ta_1_past 。	False	interval_1 > interval_2	None	2区間比較（以上/以内）
+90	agent_1[ガ格:1] は interval_1 以上かけて多くの np_2[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 は np_2 を vp_ta_1 のに interval_2 を費やした。	False	False	None	2区間比較（以上/ちょうど+多く）
+93	agent_1[ガ格:1] は interval_1 で多くの np_2[ヲ格:1] を vp_ta_1_past[ガ格,ヲ格:nint:1] 。	agent_1 は np_2 を vp_ta_1 のに interval_2 を費やした。	False	interval_1 < interval_2	None	2区間比較（ちょうど/ちょうど+多く）
+94	agent_1[ガ格:1] は決して np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:tp:1] ことはない。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_1 に np_1 を遅れて vp_ta_1_past 。	False	True	None	習慣+否定（言及済み+決してない）
+95	agent_1[ガ格:1] はいつも np_1[ヲ格:1] を遅れて vp_ta_1[ガ格,ヲ格:tp:1] 。 tp_1 に agent_1 は np_1 を vp_ta_1_past 。	agent_1 は tp_1 に np_1 を遅れずに vp_ta_1_past 。	False	True	None	習慣+否定（言及済み+いつも）
