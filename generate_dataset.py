@@ -15,6 +15,7 @@ import MeCab
 import datetime
 import time
 import os
+import collections
 
 
 # 単語の品詞を取得する
@@ -27,8 +28,11 @@ def get_pos(word):
 
 
 # テンプレートにあった格フレームの選択
-def choice_cf(verb, wordlist_dict, cf_dict, cf_keys):
-    cases = re.match(".+?\\[(.+?):\\d+\\]", verb).groups()[0].split(',')
+def choice_cf(verb, wordlist_dict, cf_dict, cf_keys, is_test):
+    include_tp = True if 'tp' in verb else False
+    include_nint = True if 'nint' in verb else False
+    include_cint = True if 'cint' in verb else False
+    cases = re.match(".+?\\[(.+?):[^\\s]*?:\\d+\\]", verb).groups()[0].split(',')
     origin_cases = [case for case in cases]
     cases = set([re.match("(.+?)\\d*$", case).groups()[0] for case in origin_cases])
     case_cands = [cf_key for cf_key in cf_keys if cases <= cf_key]
@@ -37,20 +41,36 @@ def choice_cf(verb, wordlist_dict, cf_dict, cf_keys):
         is_validcf = True
         # 選んだ格フレーム、動詞がブラックリストに入ってる動詞や変な動詞に該当しなくなるまでループ
         while True:
-            is_in_nokaku = False
-            selected_case = ','.join(sorted(list(random.choice(case_cands))))
+            is_nokaku = False
+            is_unnecessary_case = False
+            selected_case_set = random.choice(case_cands)
+            selected_case = ','.join(sorted(list(selected_case_set)))
             selected_entry = random.choice(list(cf_dict[selected_case].keys()))
-            split_entries = selected_entry.split('+')
+            split_entries = selected_entry.split('?')[-1].split('+')
             origin_verb = ''.join([split_entry[:split_entry.find('/')] for split_entry in split_entries])
             if origin_verb in wordlist_dict['black_verb']:
                 continue
-            if '時間' not in selected_case:
-                continue
-            # if 'ノ格' not in ''.join(list(cases)):
-            #     for case in cases:
-            #         if 'ノ格~' + case in selected_case:
-            #             is_in_nokaku = True
-            if is_in_nokaku:
+            if is_test:
+                # if 'ノ格' not in ''.join(list(cases)):
+                #     for case in cases:
+                #         if 'ノ格~' + case in selected_case:
+                #             is_nokaku = True
+                if set(['ヲ格', 'ニ格']) & (selected_case_set - cases) != set():
+                    is_unnecessary_case = True
+                if is_nokaku or is_unnecessary_case:
+                    continue
+                if include_tp and '時間' not in selected_case_set:
+                    continue
+                if include_nint:
+                    if not ('デ格' in selected_case_set and '<時間>' in cf_dict[selected_case][selected_entry]['デ格']):
+                        continue
+                if include_cint:
+                    for c in ['カラ格', 'マデ格']:
+                        if c in selected_case_set and '<時間>' in cf_dict[selected_case][selected_entry][c]:
+                            break
+                    else:
+                        continue
+            elif '時間' not in selected_case:
                 continue
             if '外の関係' in selected_case:
                 continue
@@ -233,9 +253,12 @@ def generate_time(elements, tp_format, interval_format, time_span):
     start_d = random.choice(range(1, 19))
     start_h = random.choice(range(0, 16))
     for element in elements:
-        if 'tp' not in element and 'interval' not in element:
+        if 'tp' not in element and 'interval' not in element and 'time_unit' not in element:
             continue
         if element in times:
+            continue
+        if 'time_unit' in element:
+            times[element] = interval_format[-2]
             continue
         while True:
             if '-' in element and '=' not in element:
@@ -260,8 +283,8 @@ def generate_time(elements, tp_format, interval_format, time_span):
                 elif tp_format[-1] == '月':
                     time = random_date(f"{y},{str(start_m)},1,0", f"{y},{str(start_m + 4)},1,0")
                 else:
-                    time = random_date(f"{str(start_y)},1,1,0", f"{str(start_y + 5)},1,1,0")
-                interval = str(random.choice(range(1, 3)))
+                    time = random_date(f"{str(start_y)},1,1,0", f"{str(start_y + 6)},1,1,0")
+                interval = str(random.choice(range(1, 4)))
             else:
                 time = random_date("2000,1,1,0", "2021,1,1,0")
                 interval = str(random.choice(range(1, 10)))
@@ -298,7 +321,12 @@ def generate_time(elements, tp_format, interval_format, time_span):
 
 
 # 格フレームを用いた文生成
-def generate_sentence_with_cf(template, wordlist_dict, cf_dict, cf_keys, tp_format, interval_format, time_span):
+def generate_sentence_with_cf(
+        template,
+        wordlist_dict,
+        cf_dict,
+        cf_keys,
+        is_test):
     memo = {}
     prem = template['premise']
     hyp = template['hypothesis']
@@ -312,12 +340,14 @@ def generate_sentence_with_cf(template, wordlist_dict, cf_dict, cf_keys, tp_form
     case_list = []
     verbs = []
     form_specifies = []
+    cf = ''
     for element in sum(sentences, []):
         if "vp" in element and "[" in element:
             while True:
                 form_specify = set()
-                verb, other_case = choice_cf(element, wordlist_dict, cf_dict, cf_keys)
-                verb_base = verb[:verb.find('/')]
+                verb, other_case = choice_cf(element, wordlist_dict, cf_dict, cf_keys, is_test)
+                verb_base = verb.split('?')[-1]
+                verb_base = verb_base[:verb_base.find('/')]
                 if "+する/する+れる/れる" in verb and get_pos(verb_base) == '名詞':
                     verb = verb_base + 'する'
                     form_specify.add("受け身")
@@ -334,11 +364,18 @@ def generate_sentence_with_cf(template, wordlist_dict, cf_dict, cf_keys, tp_form
                 except ValueError:
                     continue
                 break
+            cf = cf + verb_base + ','
+            for key, value in other_case.items():
+                if 'ガ格' in key:
+                    continue
+                cf = cf + key + ',' + value + ','
             case_list.append(other_case)
             form_specifies.append(form_specify)
+            if verb == '居った':
+                verb = '居た'
             verbs.append(verb)
 
-    times = generate_time(sum(sentences, []), tp_format, interval_format, time_span)
+    cf = cf.rstrip(',')
     for i, sentence in enumerate(sentences):
         for j, element in enumerate(sentence):
             if element in memo:
@@ -361,14 +398,11 @@ def generate_sentence_with_cf(template, wordlist_dict, cf_dict, cf_keys, tp_form
                 else:
                     new_element = kotodama.transformVerb(verbs[ind], form_specifies[ind])
                 new_element += suffix
-            elif 'tp' in element or 'interval' in element:
-                # new_element = assign_time(element, tp_format, interval_format, memo, times, time_span)
-                if '!=' in element:
-                    new_element = times[element.split('!=')[0]]
-                    memo[element.split('!=')[0]] = new_element
+            elif 'tp' in element or 'interval' in element or 'time_unit' in element:
+                if i == j == 0 or (sentences[i] == sentences[-1] and j == 0):
+                    new_element = element + ' '
                 else:
-                    new_element = times[element]
-                    memo[element] = new_element
+                    new_element = ' ' + element + ' '
             elif element and element[0] == '[':
                 cands = element[1:-1].split(',')
                 new_element = random.choice(cands)
@@ -388,76 +422,201 @@ def generate_sentence_with_cf(template, wordlist_dict, cf_dict, cf_keys, tp_form
                 memo[element] = new_element
             sentences[i][j] = new_element
 
-    answer = generate_ans(memo, template)
-
-    return [''.join(sentence) for sentence in sentences], answer
+    return [''.join(sentence) for sentence in sentences], cf
 
 
-# 格フレームを用いたデータ生成
-def generate_dataset_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_keys, data_num):
-    texts = []
+def fill_times(sentence_wo_time, times):
+    prem = sentence_wo_time['premise']
+    hyp = sentence_wo_time['hypothesis']
+    prems = re.split("(?<=。)", prem)[:-1]
+    prems_elements = [prem.split(' ') for prem in prems]
+    hyp_elements = hyp.split(' ')
+    sentences = prems_elements + [hyp_elements]
+    for i, sentence in enumerate(sentences):
+        for j, element in enumerate(sentence):
+            if 'tp' in element or 'interval' in element or 'time_unit' in element:
+                if '!=' in element:
+                    new_element = times[element.split('!=')[0]]
+                else:
+                    new_element = times[element]
+                sentences[i][j] = new_element
+
+    return [''.join(sentence) for sentence in sentences]
+
+
+def generate_middata_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_keys, mid_data_num):
+    is_test = True if 'test' in out_file else False
     time_unit_list = ['year', 'month', 'day', 'hour']
     ja2en_timeunit = {"年": "year", "月": "month", "日": "day", "時": "hour"}
     tu2intervalformat = {"year": "i年間", "month": "iヶ月間", "day": "i日間", "hour": "i時間"}
-    # tp_format_list = {"i時間": ["y年m月d日h時", "m月d日h時", "d日h時", "h時"],
-    #                   "i日間": ["y年m月d日", "m月d日", "d日"],
-    #                   "iヶ月間": ["y年m月", "m月"],
-    #                   "i年間": ["y年"]}
     tp_format_list = {"i時間": ["h時"],
                       "i日間": ["d日", "d日h時"],
                       "iヶ月間": ["m月", "m月d日", "m月d日h時"],
                       "i年間": ["y年", "y年m月", "y年m月d日", "y年m月d日h時"]}
-    label_dist = defaultdict(int)
+    texts = []
+    num = 0
     for template in tqdm(templates):
+        data_per_template = 0
         ng_time_units = template['ng time unit'].split(',')
+        test_break_flag = False
         for time_unit in time_unit_list:
             if time_unit in ng_time_units:
                 continue
             else:
                 ng_time_formats = [ng_time_unit.split('.') for ng_time_unit in ng_time_units]
             interval_format = tu2intervalformat[time_unit]
-            idx = 0
+            break_flag = False
             for tp_format in tp_format_list[interval_format]:
-                idx += 1
-                if 'tp' not in template['premise'] + template['hypothesis'] and idx > 1:
+                cat_ph = template['premise'] + template['hypothesis']
+                if 'tp' not in cat_ph and break_flag:
+                    break
+                if is_test and test_break_flag:
+                    break
+                if [time_unit, ja2en_timeunit[tp_format[-1]]] in ng_time_formats:
                     continue
+                break_flag = True
+                test_break_flag = True
 
                 time_spans = ['random', 'short']
-                if 'tp' in template['premise'] + template['hypothesis']:
+                if 'tp' not in cat_ph and 'interval' not in cat_ph:
+                    time_spans = ['None']
+
+                ans_list = []
+                for time_span in time_spans:
+                    for _ in range(mid_data_num * 20):
+                        prems = re.split("(?<=。)", template['premise'])[:-1]
+                        prems_elements = [prem.split(' ') for prem in prems]
+                        hyp_elements = template['hypothesis'].split(' ')
+                        sentences = prems_elements + [hyp_elements]
+                        time = generate_time(sum(sentences, []), tp_format, interval_format, time_span)
+                        ans_list.append(generate_ans(time, template))
+                        ans_list = list(set(ans_list))
+
+                    data_per_template += mid_data_num * len(ans_list)
+
+        test_verb = []
+        test_cf = []
+        for _ in range(data_per_template):
+            loop = 0
+            valid_text = False
+            while True:
+                loop += 1
+                sentences, cf = generate_sentence_with_cf(template, wordlist_dict, cf_dict, cf_keys, is_test)
+                if is_test and loop > 100:
+                    break
+                if is_test and loop < 50 and cf.split(',')[0] in test_verb:
+                    continue
+                elif is_test and loop < 100 and cf.split in test_cf:
+                    continue
+                test_verb.append(cf.split(',')[0])
+                test_cf.append(cf)
+                valid_text = True
+                break
+
+            if valid_text:
+                num += 1
+                text = {'num': num,
+                        'premise': ''.join(sentences[:-1]),
+                        'hypothesis': sentences[-1],
+                        'template_num': template['id'],
+                        'category': template['category'],
+                        'cf': cf}
+                texts.append(text)
+
+    pd.DataFrame(texts).to_csv(out_file + '.tsv', sep='\t', index=False)
+    return
+
+# 格フレームを用いたデータ生成
+
+
+def generate_dataset_with_cf(in_file, out_file, templates, data_num):
+    is_test = True if 'test' in out_file else False
+    time_unit_list = ['year', 'month', 'day', 'hour']
+    ja2en_timeunit = {"年": "year", "月": "month", "日": "day", "時": "hour"}
+    tu2intervalformat = {"year": "i年間", "month": "iヶ月間", "day": "i日間", "hour": "i時間"}
+    tp_format_list = {"i時間": ["h時"],
+                      "i日間": ["d日", "d日h時"],
+                      "iヶ月間": ["m月", "m月d日", "m月d日h時"],
+                      "i年間": ["y年", "y年m月", "y年m月d日", "y年m月d日h時"]}
+
+    texts = pd.read_csv(in_file + '.tsv', sep='\t').to_dict('records')
+    template2texts = defaultdict(list)
+    for text in texts:
+        template2texts[text['template_num']].append(text)
+
+    comp_texts = []
+    num = 0
+    for template in tqdm(templates):
+        ng_time_units = template['ng time unit'].split(',')
+        i = 0
+        for time_unit in time_unit_list:
+            if time_unit in ng_time_units:
+                continue
+            else:
+                ng_time_formats = [ng_time_unit.split('.') for ng_time_unit in ng_time_units]
+            interval_format = tu2intervalformat[time_unit]
+            break_flag = False
+            for tp_format in tp_format_list[interval_format]:
+                cat_ph = template['premise'] + template['hypothesis']
+                if 'tp' not in cat_ph and break_flag:
+                    continue
+                break_flag = True
+
+                time_spans = ['random', 'short']
+                if 'tp' in cat_ph:
                     time_format = re.sub(r"[a-zA-Z]", "", tp_format)
-                elif 'interval' in template['premise'] + template['hypothesis']:
+                elif 'interval' in cat_ph:
                     time_format = interval_format[-2:]
+                elif 'time_unit' in cat_ph:
+                    time_format = interval_format[-2:]
+                    time_spans = ['None']
                 else:
                     time_format = "None"
                     time_spans = ['None']
 
+                if is_test and time_format != template['test time format']:
+                    continue
                 if [time_unit, ja2en_timeunit[tp_format[-1]]] in ng_time_formats:
                     continue
 
                 # 1つのテンプレートあたりいくつのインスタンスを生成するか
                 for time_span in time_spans:
-                    for _ in range(data_num):
-                        while True:
-                            text, ans = generate_sentence_with_cf(
-                                template, wordlist_dict, cf_dict, cf_keys, tp_format, interval_format, time_span)
-                            zero_flag = False
-                            for t in text:
-                                zero = re.search('([^\\d]0[月,日])|(-1時)|(^0[月,日])', t)
-                                if zero:
-                                    zero_flag = True
-                            if not zero_flag:
-                                break
-                            # random.seed(max_perplexity)
-                        texts.append([''.join(text[:-1]), text[-1], ans, template['id'],
-                                     time_format, time_span, template['category']])
-                        label_dist[ans] += 1
+                    times_dic = {'entailment': [], 'contradiction': [], 'neutral': []}
+                    for _ in range(400):
+                        prems = re.split("(?<=。)", template['premise'])[:-1]
+                        prems_elements = [prem.split(' ') for prem in prems]
+                        hyp_elements = template['hypothesis'].split(' ')
+                        sentences = prems_elements + [hyp_elements]
+                        time = generate_time(sum(sentences, []), tp_format, interval_format, time_span)
+                        ans = generate_ans(time, template)
+                        time_cat = ','.join(time.values())
+                        zero_flag = True if re.search('([^\\d]0[月,日])|(-1時)|(^0[月,日])', time_cat) else False
+                        if len(times_dic[ans]) < data_num and not zero_flag:
+                            times_dic[ans].append(time)
 
-    with open(out_file, 'w') as outfile:
-        outfile.write('num\tpremise\thypothesis\tgold_label\ttemplate_num\ttime_format\ttime_span\tcategory\n')
-        idx = 1
-        for text in texts:
-            outfile.write(f'{str(idx)}\t{text[0]}\t{text[1]}\t{text[2]}\t{text[3]}\t{text[4]}\t{text[5]}\t{text[6]}\n')
-            idx += 1
+                    for ans in times_dic:
+                        if times_dic[ans] == []:
+                            continue
+                        for j in range(data_num):
+                            masked_sentences = template2texts[template['id']][i]
+                            sentences = fill_times(masked_sentences, times_dic[ans][j])
+                            i += 1
+                            num += 1
+                            comp_text = {'num': num,
+                                         'premise': ''.join(sentences[:-1]),
+                                         'hypothesis': sentences[-1],
+                                         'gold_label': ans,
+                                         'template_num': template['id'],
+                                         'time_format': time_format,
+                                         'time_span': time_span,
+                                         'category': template['category']}
+                            comp_texts.append(comp_text)
+
+    pd.DataFrame(comp_texts).to_csv(out_file + '.tsv', sep='\t', index=False)
+    labels = [comp_text['gold_label'] for comp_text in comp_texts]
+    print(len(labels), end='\t')
+    print(collections.Counter(labels))
+    return
 
 
 def split_dataset(templates, ver, split, seed=0, mode='random'):
@@ -498,42 +657,6 @@ def split_dataset(templates, ver, split, seed=0, mode='random'):
     return 0
 
 
-def extract_problem(inpath, outpath, num):
-    problems = pd.read_csv(inpath, sep='\t').to_dict('records')
-    extracted_problems = []
-    counters = defaultdict(lambda: num)
-    label_dist = defaultdict(int)
-    idx = 1
-    template2timeformat = defaultdict(list)
-    use_timeformat = defaultdict(lambda: ['年月日時', '時間', "None"])
-    if 'test' in inpath:
-        for problem in problems:
-            template2timeformat[problem['template_num']].append(problem['time_format'])
-            template2timeformat[problem['template_num']] = list(set(template2timeformat[problem['template_num']]))
-        for template in template2timeformat:
-            if set(template2timeformat[template]) & set(['年月日時', '時間', "None"]) == set():
-                use_timeformat[template].append(
-                    sorted(
-                        template2timeformat[template],
-                        key=lambda x: len(x),
-                        reverse=True)[0])
-
-    for problem in problems:
-        if 'test' in inpath and problem['time_format'] not in use_timeformat[problem['template_num']]:
-            continue
-        gtt = problem['gold_label'] + str(problem['template_num']) + problem['time_format'] + problem['time_span']
-        if counters[gtt]:
-            counters[gtt] -= 1
-            problem['num'] = idx
-            idx += 1
-            label_dist[problem['gold_label']] += 1
-            label_dist['all'] += 1
-            extracted_problems.append(problem)
-    pd.DataFrame(extracted_problems).to_csv(outpath, sep='\t', index=False)
-    print(outpath + ':\t', end='')
-    print(label_dist)
-
-
 def initialize(template_ver):
     wordlist_dict = {}
 
@@ -565,10 +688,8 @@ def initialize(template_ver):
 
 def main():
     random.seed(0)
-    template_ver = 'ver_1_3'
-    ver = '1_5'
-    test_num_per_pattern = 2
-    train_num_per_pattern = 10
+    template_ver = 'ver_1_4'
+    ver = '1_6'
     split_dict = {'random': [9, 8, 7], 'custom': ['template', 'timeformat', 'timespan']}
     do_split = {'random': False, 'custom': False}
     do_update = False
@@ -579,16 +700,10 @@ def main():
     templates, wordlist_dict, cf_dict, cf_keys = initialize(template_ver)
 
     if do_update:
-        generate_dataset_with_cf(path + 'train_raw.tsv', templates, wordlist_dict, cf_dict, cf_keys, 100)
-        generate_dataset_with_cf(path + 'test_raw.tsv', templates, wordlist_dict, cf_dict, cf_keys, 100)
-        extract_problem(path + 'train_raw.tsv', path + 'train_all.tsv', train_num_per_pattern)
-        extract_problem(path + 'test_raw.tsv', path + 'test_2.tsv', 2)
-        extract_problem(path + 'test_raw.tsv', path + 'test_3.tsv', 3)
-    extract_problem(path + 'test_raw.tsv', path + 'test_5.tsv', 5)
+        generate_middata_with_cf(path + 'train_all_temp', templates, wordlist_dict, cf_dict, cf_keys, 20)
+        generate_dataset_with_cf(path + 'train_all_temp', path + 'train_all', templates, 10)
+        generate_middata_with_cf(path + 'test_2_temp', templates, wordlist_dict, cf_dict, cf_keys, 5)
 
-    # for mode in ['train', 'test']:
-    #     if ((not os.path.exists(path + f'{mode}_all_wakati.tsv')) and do_wakati) or do_update:
-    #         wakati(path + f'{mode}_all')
     if do_wakati:
         wakati(path + 'train_all')
         wakati(path + 'test_2')
