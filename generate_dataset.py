@@ -90,7 +90,8 @@ def choice_cf(verb, wordlist_dict, cf_dict, cf_keys, is_test):
                 words = selected_dict[case_wo_ind][ind].split('+')
                 word = ''.join([w[:w.find('/')] for w in words])
                 pos = get_pos(word)
-                if word in word_list or word in wordlist_dict['black_vocab'] or '名詞' not in pos or '動詞' in pos:
+                if (case_wo_ind != 'ガ格' and word in word_list) or \
+                        word in wordlist_dict['black_vocab'] or '名詞' not in pos or '動詞' in pos:
                     continue
                 elif case_wo_ind == 'ガ格' and word not in wordlist_dict['agent']:
                     continue
@@ -425,6 +426,7 @@ def generate_sentence_with_cf(
     return [''.join(sentence) for sentence in sentences], cf
 
 
+# 中間データに時間を代入
 def fill_times(sentence_wo_time, times):
     prem = sentence_wo_time['premise']
     hyp = sentence_wo_time['hypothesis']
@@ -444,6 +446,7 @@ def fill_times(sentence_wo_time, times):
     return [''.join(sentence) for sentence in sentences]
 
 
+# 格フレームを用いた中間データ生成
 def generate_middata_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_keys, mid_data_num):
     is_test = True if 'test' in out_file else False
     time_unit_list = ['year', 'month', 'day', 'hour']
@@ -506,7 +509,7 @@ def generate_middata_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_key
                     break
                 if is_test and loop < 50 and cf.split(',')[0] in test_verb:
                     continue
-                elif is_test and loop < 100 and cf.split in test_cf:
+                if is_test and loop < 100 and cf in test_cf:
                     continue
                 test_verb.append(cf.split(',')[0])
                 test_cf.append(cf)
@@ -526,9 +529,8 @@ def generate_middata_with_cf(out_file, templates, wordlist_dict, cf_dict, cf_key
     pd.DataFrame(texts).to_csv(out_file + '.tsv', sep='\t', index=False)
     return
 
-# 格フレームを用いたデータ生成
 
-
+# 格フレームを用いた最終データ生成
 def generate_dataset_with_cf(in_file, out_file, templates, data_num):
     is_test = True if 'test' in out_file else False
     time_unit_list = ['year', 'month', 'day', 'hour']
@@ -688,12 +690,12 @@ def initialize(template_ver):
 
 def main():
     random.seed(0)
-    template_ver = 'ver_1_4'
-    ver = '1_6'
+    template_ver = 'ver_1_5'
+    ver = '2_0'
     split_dict = {'random': [9, 8, 7], 'custom': ['template', 'timeformat', 'timespan']}
-    do_split = {'random': False, 'custom': False}
-    do_update = False
-    do_wakati = False
+    do_split = {'random': False, 'custom': True}
+    do_update = True
+    do_wakati = True
     path = f'dataset/ver_{ver}/'
 
     os.makedirs(f'./dataset/ver_{ver}', exist_ok=True)
@@ -703,11 +705,11 @@ def main():
         generate_middata_with_cf(path + 'train_all_temp', templates, wordlist_dict, cf_dict, cf_keys, 20)
         generate_dataset_with_cf(path + 'train_all_temp', path + 'train_all', templates, 10)
         generate_middata_with_cf(path + 'test_2_temp', templates, wordlist_dict, cf_dict, cf_keys, 5)
+        generate_dataset_with_cf(path + 'test_filtered', path + 'test_2', templates, 2)
 
     if do_wakati:
         wakati(path + 'train_all')
         wakati(path + 'test_2')
-        wakati(path + 'test_3')
 
     for mode in ['random', 'custom']:
         if not do_split[mode]:
