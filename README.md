@@ -30,3 +30,7 @@ If you use this dataset in any published research, please cite the following:
 ## Contact
 
 For questions and usage issues, please contact sugimoto.tomoki@is.s.u-tokyo.ac.jp
+
+## License
+
+- [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
